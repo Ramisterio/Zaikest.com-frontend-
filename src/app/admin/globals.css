@@ -1,0 +1,26 @@
+/* Admin Global Styles */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #f3f4f6; /* light gray */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Oxygen, Ubuntu, Cantarell;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.admin-card {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+}

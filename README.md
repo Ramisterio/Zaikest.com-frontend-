@@ -2,7 +2,22 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+Set environment variables first:
+
+```bash
+cp .env.example .env.local
+```
+
+Required variable:
+
+- `NEXT_PUBLIC_API_URL`: Backend origin URL (example: `https://api.example.com`)
+
+Important:
+
+- `NEXT_PUBLIC_*` variables are exposed in the browser. Do not place secrets in frontend env files.
+- In production, localhost API URLs are blocked by runtime validation.
+
+Then run the development server:
 
 ```bash
 npm run dev
