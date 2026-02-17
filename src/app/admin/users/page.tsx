@@ -117,7 +117,9 @@ export default function UsersPage() {
                 <tr key={u._id || u.id || u.userId} className="border-t">
                   <td className="p-3 font-semibold">{u.name || "--"}</td>
                   <td>{u.email || "--"}</td>
-                  <td className="text-center">{u.role || "user"}</td>
+                 <td className="text-center">
+  {typeof u.role === "string" ? u.role : u.role?.name || "user"}
+</td>
                   <td className="text-center">{u.phone || "--"}</td>
                   <td className="text-center text-xs text-gray-500">
                     {u.createdAt

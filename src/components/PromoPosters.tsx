@@ -1,12 +1,16 @@
 "use client";
-
-import { Sparkles, ShieldCheck, Truck, Tag } from "lucide-react";
+import {
+  Sparkles as LucideSparkles,
+  ShieldCheck as LucideShieldCheck,
+  Truck as LucideTruck,
+  Tag as LucideTag,
+} from "lucide-react";
 
 type Poster = {
   title: string;
   text: string;
   badge: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ComponentType<{ size?: number; className?: string }>,
 };
 
 const posters: Poster[] = [
@@ -14,30 +18,30 @@ const posters: Poster[] = [
     title: "Weekend Feast Packs",
     text: "Curated bundles with extra savings on family favorites.",
     badge: "Limited",
-    icon: Tag,
+    icon: (props) => <LucideTag {...props} />,
   },
   {
     title: "Express Delivery",
     text: "Get hot dishes to your door in 20-30 minutes.",
     badge: "Fast",
-    icon: Truck,
+   icon: (props) => <LucideTruck {...props} />,
   },
   {
     title: "Chef Specials",
     text: "New seasonal recipes, crafted fresh every day.",
     badge: "New",
-    icon: Sparkles,
+    icon: (props) => <LucideSparkles {...props} />,
   },
   {
     title: "Quality Checked",
     text: "Every order is packed with care and verified.",
     badge: "Assured",
-    icon: ShieldCheck,
+    icon: (props) => <LucideShieldCheck {...props} />,
   },
 ];
 
 export default function PromoPosters() {
-  return (
+  return ( 
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {posters.map((poster) => {
         const Icon = poster.icon;
