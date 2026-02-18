@@ -198,7 +198,7 @@ export default function Navbar() {
               <Link
                 key={cat}
                 href={`/products?category=${encodeURIComponent(cat)}`}
-                className="text-sm font-semibold text-white bg-white/10 border border-white/20 px-4 py-2 rounded-full hover:bg-white/20 transition"
+                className="text-sm font-semibold text-white bg-white/10 border border-white/20 px-4 h-10 rounded-full hover:bg-white/20 transition inline-flex items-center justify-center whitespace-nowrap leading-none"
               >
                 {cat}
               </Link>
@@ -206,7 +206,7 @@ export default function Navbar() {
           )}
           <Link
             href="/products"
-            className="text-sm font-semibold text-white border border-dashed border-white/50 px-4 py-2 rounded-full hover:bg-white/10 transition"
+            className="text-sm font-semibold text-white border border-dashed border-white/50 px-4 h-10 rounded-full hover:bg-white/10 transition inline-flex items-center justify-center whitespace-nowrap leading-none"
           >
             View all
           </Link>
@@ -237,7 +237,7 @@ export default function Navbar() {
                 <Link
                   key={cat}
                   href={`/products?category=${encodeURIComponent(cat)}`}
-                  className="block text-center font-semibold text-white bg-white/10 border border-white/20 px-4 py-2 rounded-full"
+                  className="text-center font-semibold text-white bg-white/10 border border-white/20 px-4 h-10 rounded-full inline-flex items-center justify-center whitespace-nowrap leading-none"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {cat}
