@@ -26,11 +26,18 @@ export default function Navbar() {
   const [openLogin, setOpenLogin] = useState(false);
   const [openRegister, setOpenRegister] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showCategories, setShowCategories] = useState(true);
+  const [compactNav, setCompactNav] = useState(false);
+  const forceCompact =
+    pathname === "/checkout" ||
+    pathname === "/cart" ||
+    pathname === "/orders";
+  const effectiveCompact = forceCompact || compactNav;
 
 
   const [categories, setCategories] = useState<string[]>([]);
@@ -51,6 +58,36 @@ export default function Navbar() {
 
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let ticking = false;
+
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+        const delta = currentY - lastY;
+        const nearTop = currentY < 80;
+
+        if (nearTop) {
+          setShowCategories(true);
+          setCompactNav(false);
+        } else if (Math.abs(delta) > 12) {
+          setShowCategories(delta < 0);
+          setCompactNav(delta > 0);
+        }
+
+        lastY = currentY;
+        ticking = false;
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
 
   const handleLogout = async () => {
     await logout();
@@ -80,8 +117,12 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-gradient-to-b from-[#c41d1d] to-[#0f0f0f] text-white">
-      <div className="hidden md:block">
-        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between text-xs">
+      <div
+        className={`hidden md:block transition-all duration-300 ${
+          effectiveCompact ? "max-h-0 opacity-0 overflow-hidden" : "max-h-12 opacity-100"
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between text-xs font-semibold">
           <span>Delivery in 20-30 min in select areas</span>
           <span className="inline-flex items-center gap-1">
             <Sparkles size={12} />
@@ -91,14 +132,18 @@ export default function Navbar() {
       </div>
 
       <div className="border-b border-white/10">
-        <nav className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
+        <nav
+          className={`max-w-7xl mx-auto px-4 flex items-center gap-3 sm:gap-4 transition-all duration-300 ${
+            effectiveCompact ? "py-2" : "py-2.5 sm:py-3"
+          }`}
+        >
           <Link href="/" className="flex items-center shrink-0">
             <Image
               src="/images/zaikest-logo1.png"
               alt="Zaikest"
               width={96}
               height={28}
-              className="object-contain"
+              className="object-contain w-[48px] sm:w-[56px] md:w-[64px] h-auto"
             />
           </Link>
 
@@ -121,42 +166,58 @@ export default function Navbar() {
             />
           </form>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {isLoggedIn ? (
               <div className="relative">
                 <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-1 text-sm font-semibold text-white bg-white/10 border border-white/20 rounded-full px-4 py-2 hover:bg-white/20 transition"
+                  onClick={() => setUserMenuOpen((open) => !open)}
+                  className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-white bg-white/10 border border-white/20 rounded-full px-3 sm:px-4 py-2 hover:bg-white/20 transition"
                 >
                   {user.name}
-                  <ChevronDown size={14} />
+                  <ChevronDown size={14} className="hidden sm:inline" />
                 </button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-lg border border-[#f1dede] overflow-hidden text-[#1a1a1a]">
-                    <Link href="/profile" className="block px-4 py-3 hover:bg-red-50">
-                      Profile
-                    </Link>
-
-                    {user.role === "admin" && (
-                      <Link href="/admin/dashboard" className="block px-4 py-3 hover:bg-red-50">
-                        Admin Dashboard
-                      </Link>
-                    )}
-
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-left px-4 py-3 text-[#c41d1d] hover:bg-red-50"
+                  <div
+                    className="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-0 sm:static sm:mt-2 sm:flex-none"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <div
+                      className="w-full max-w-[320px] sm:w-52 bg-white rounded-2xl shadow-lg border border-[#f1dede] overflow-hidden text-[#1a1a1a]"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      Logout
-                    </button>
+                      <Link
+                        href="/profile"
+                        className="block px-4 py-3 hover:bg-red-50"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        Profile
+                      </Link>
+
+                      {user.role === "admin" && (
+                        <Link
+                          href="/admin/dashboard"
+                          className="block px-4 py-3 hover:bg-red-50"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          Admin Dashboard
+                        </Link>
+                      )}
+
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-3 text-[#c41d1d] hover:bg-red-50"
+                      >
+                        Logout
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             ) : (
               <button
                 onClick={() => setOpenLogin(true)}
-                className="flex items-center gap-2 text-sm font-semibold text-white bg-white/10 border border-white/20 rounded-full px-3 py-2 hover:bg-white/20 transition"
+                className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white bg-white/10 border border-white/20 rounded-full px-3 py-2 hover:bg-white/20 transition"
                 aria-label="Open login"
               >
                 <User size={18} />
@@ -166,7 +227,7 @@ export default function Navbar() {
 
             <button
               onClick={() => setCartOpen(true)}
-              className="relative flex items-center gap-2 px-4 py-2 rounded-full bg-amber-400 text-green-950 shadow hover:bg-amber-300 transition"
+              className="relative flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-amber-400 text-green-950 shadow hover:bg-amber-300 transition"
               aria-label="Open cart"
             >
               <ShoppingCart size={18} />
@@ -189,8 +250,12 @@ export default function Navbar() {
         </nav>
       </div>
 
-      <div className="hidden lg:block border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3 overflow-x-auto">
+      <div className={`hidden lg:block border-b border-white/10 ${effectiveCompact ? "hidden" : ""}`}>
+        <div
+          className={`max-w-7xl mx-auto px-4 py-3 flex items-center gap-3 overflow-x-auto scroll-smooth transition-transform transition-opacity duration-300 will-change-transform ${
+            showCategories ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"
+          }`}
+        >
           <Link
             href="/products"
             className="text-sm font-semibold text-white border border-dashed border-white/50 px-4 h-10 rounded-full hover:bg-white/10 transition inline-flex items-center justify-center whitespace-nowrap leading-none"
@@ -229,7 +294,7 @@ export default function Navbar() {
             />
           </form>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
             {categories.length === 0 ? (
               <span className="text-sm text-white/70">Loading categories...</span>
             ) : (
@@ -237,10 +302,10 @@ export default function Navbar() {
                 <Link
                   key={cat}
                   href={`/products?category=${encodeURIComponent(cat)}`}
-                  className="text-center font-semibold text-white bg-white/10 border border-white/20 px-4 h-10 rounded-full inline-flex items-center justify-center whitespace-nowrap leading-none"
+                  className="text-center font-semibold text-white bg-white/10 border border-white/20 px-3 h-10 rounded-full inline-flex items-center justify-center leading-none text-xs sm:text-sm min-w-0"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  {cat}
+                  <span className="truncate">{cat}</span>
                 </Link>
               ))
             )}

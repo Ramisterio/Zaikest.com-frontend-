@@ -36,7 +36,7 @@ export default function CartDrawer({
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full border border-green-100 hover:border-green-300 transition"
+            className="p-2 rounded-full border border-green-100 bg-gray-200 hover:bg-gray-300 hover:border-green-300 transition"
             aria-label="Close cart"
           >
             <X size={18} />
@@ -53,7 +53,7 @@ export default function CartDrawer({
               {cart.map((item) => (
                 <div
                   key={item._id}
-                  className="flex items-center justify-between gap-4 border border-green-100 rounded-2xl p-3"
+                  className="flex items-center justify-between gap-4 border border-green-100 rounded-2xl p-3 bg-gray-200"
                 >
                   <div className="flex-1">
                     <p className="font-semibold text-green-950">{item.name}</p>

@@ -101,7 +101,7 @@ export default function ProductsPage() {
   }))
 
   return (
-    <main className="py-12 max-w-7xl mx-auto px-4">
+    <main className="py-10 sm:py-12 max-w-7xl mx-auto px-4">
       <div className="relative overflow-hidden rounded-3xl border border-green-200 bg-white mb-10">
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -120,11 +120,11 @@ export default function ProductsPage() {
           aria-hidden
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/55 to-black/35" />
-        <div className="relative text-center px-6 py-12 sm:px-10 sm:py-16 max-w-3xl mx-auto">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-3 drop-shadow">
+        <div className="relative text-center px-6 py-10 sm:px-10 sm:py-16 max-w-3xl mx-auto">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-3 drop-shadow">
             Zaikest Grocery
           </h1>
-          <p className="text-white/90 text-lg font-semibold drop-shadow">
+          <p className="text-white/90 text-sm sm:text-base md:text-lg font-semibold drop-shadow">
             Shop category wise for dishes, pastes, spices, snacks, and pantry staples.
           </p>
         </div>
@@ -135,7 +135,7 @@ export default function ProductsPage() {
         animate={{ opacity: 1 }}
         className="mb-10"
       >
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-thin">
+        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-thin">
           {[...categories].sort((a, b) => {
             if (a === "All") return -1
             if (b === "All") return 1
@@ -146,7 +146,7 @@ export default function ProductsPage() {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`whitespace-nowrap px-5 py-2 rounded-full font-semibold transition border inline-flex items-center gap-2
+                className={`whitespace-nowrap px-4 sm:px-5 py-2 rounded-full font-semibold transition border inline-flex items-center gap-2
                   ${
                     selectedCategory === cat
                       ? "bg-green-700 text-white border-green-700"
@@ -194,9 +194,9 @@ export default function ProductsPage() {
                       View all
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 justify-items-center">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {group.products.map((product) => (
-                      <div key={product._id} className="w-full max-w-[240px]">
+                      <div key={product._id} className="w-full">
                         <ProductCard
                           product={product}
                           onCategoryClick={(cat) => setSelectedCategory(cat)}
@@ -218,10 +218,10 @@ export default function ProductsPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 justify-items-center"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
           >
             {filteredProducts.map((product) => (
-              <div key={product._id} className="w-full max-w-[240px]">
+              <div key={product._id} className="w-full">
                 <ProductCard
                   product={product}
                   onCategoryClick={(cat) => setSelectedCategory(cat)}

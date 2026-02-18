@@ -20,12 +20,12 @@ export default function Footer() {
   return (
     <footer className="mt-16 bg-gradient-to-b from-[#9b1414] via-[#0f0f0f] to-[#070707] text-white">
       {/* TOP SECTION */}
-      <div className="max-w-7xl mx-auto px-4 py-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 items-start">
+      <div className="max-w-7xl mx-auto px-4 py-12 sm:py-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 items-start">
         <div className="space-y-4">
           <motion.div
             whileHover={{ scale: 1.08 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
-            className="relative w-32 h-32"
+            className="relative w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32"
           >
             <Link href="/">
               <Image
