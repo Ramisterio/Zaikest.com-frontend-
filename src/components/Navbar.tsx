@@ -191,6 +191,12 @@ export default function Navbar() {
 
       <div className="hidden lg:block border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3 overflow-x-auto">
+          <Link
+            href="/products"
+            className="text-sm font-semibold text-white border border-dashed border-white/50 px-4 h-10 rounded-full hover:bg-white/10 transition inline-flex items-center justify-center whitespace-nowrap leading-none"
+          >
+            View all
+          </Link>
           {categories.length === 0 ? (
             <span className="text-sm text-white/70">Loading categories...</span>
           ) : (
@@ -204,12 +210,6 @@ export default function Navbar() {
               </Link>
             ))
           )}
-          <Link
-            href="/products"
-            className="text-sm font-semibold text-white border border-dashed border-white/50 px-4 h-10 rounded-full hover:bg-white/10 transition inline-flex items-center justify-center whitespace-nowrap leading-none"
-          >
-            View all
-          </Link>
         </div>
       </div>
 
