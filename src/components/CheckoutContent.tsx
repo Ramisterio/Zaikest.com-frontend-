@@ -400,7 +400,7 @@ export default function CheckoutContent({
         />
         <div className="absolute inset-0 bg-white/35" aria-hidden />
         <div className="relative z-10">
-        <h1 className="text-2xl font-bold text-green-950">Your cart is empty</h1>
+        <h1 className="text-2xl font-extrabold text-white">Your cart is empty</h1>
         <Link href="/products" className="text-green-700 hover:text-green-800 mt-4 inline-block">
           Browse Products
         </Link>

@@ -30,8 +30,8 @@ export default function CartPage() {
       <div className="relative z-10 max-w-5xl mx-auto">
         {cart.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[70vh] text-center animate-fade-in">
-            <h1 className="text-3xl font-bold mb-2 text-green-950">Your cart is empty</h1>
-            <p className="text-[#5f6f61] mb-4">Looks like you have not added anything yet.</p>
+            <h1 className="text-3xl font-extrabold mb-2 text-white">Your cart is empty</h1>
+            <p className="text-white/80 mb-4">Looks like you have not added anything yet.</p>
             <Link
               href="/products"
               className="inline-flex items-center gap-2 text-green-700 font-semibold hover:text-green-800"

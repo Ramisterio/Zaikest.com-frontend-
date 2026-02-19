@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "../context/CartContext";
 import { ShoppingCart, Menu, X, Search, ChevronDown, MapPin, Sparkles, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Modal from "./Modal";
 import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
@@ -32,12 +32,8 @@ export default function Navbar() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showCategories, setShowCategories] = useState(true);
-  const [compactNav, setCompactNav] = useState(false);
-  const forceCompact =
-    pathname === "/checkout" ||
-    pathname === "/cart" ||
-    pathname === "/orders";
-  const effectiveCompact = forceCompact || compactNav;
+  const effectiveCompact = false;
+  const headerRef = useRef<HTMLElement | null>(null);
 
 
   const [categories, setCategories] = useState<string[]>([]);
@@ -60,32 +56,26 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    let lastY = window.scrollY;
-    let ticking = false;
+    setShowCategories(true);
+  }, []);
 
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        const currentY = window.scrollY;
-        const delta = currentY - lastY;
-        const nearTop = currentY < 80;
+  useEffect(() => {
+    const headerEl = headerRef.current;
+    if (!headerEl) return;
 
-        if (nearTop) {
-          setShowCategories(true);
-          setCompactNav(false);
-        } else if (Math.abs(delta) > 12) {
-          setShowCategories(delta < 0);
-          setCompactNav(delta > 0);
-        }
-
-        lastY = currentY;
-        ticking = false;
-      });
+    const updateNavHeight = () => {
+      const nextHeight = headerEl.offsetHeight || 0;
+      document.documentElement.style.setProperty("--nav-h", `${nextHeight}px`);
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    updateNavHeight();
+    const observer = new ResizeObserver(updateNavHeight);
+    observer.observe(headerEl);
+    window.addEventListener("resize", updateNavHeight);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateNavHeight);
+    };
   }, []);
 
 
@@ -116,7 +106,10 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-gradient-to-b from-[#c41d1d] to-[#0f0f0f] text-white">
+    <header
+      ref={headerRef}
+      className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-[#c41d1d] to-[#0f0f0f] text-white"
+    >
       <div
         className={`hidden md:block transition-all duration-300 ${
           effectiveCompact ? "max-h-0 opacity-0 overflow-hidden" : "max-h-12 opacity-100"
@@ -133,7 +126,7 @@ export default function Navbar() {
 
       <div className="border-b border-white/10">
         <nav
-          className={`max-w-7xl mx-auto px-4 flex items-center gap-3 sm:gap-4 transition-all duration-300 ${
+          className={`max-w-7xl mx-auto px-4 flex items-center gap-2 sm:gap-4 transition-all duration-300 min-w-0 ${
             effectiveCompact ? "py-2" : "py-2.5 sm:py-3"
           }`}
         >
@@ -143,8 +136,14 @@ export default function Navbar() {
               alt="Zaikest"
               width={96}
               height={28}
-              className="object-contain w-[48px] sm:w-[56px] md:w-[64px] h-auto"
+              className="object-contain w-[44px] sm:w-[56px] md:w-[64px] h-auto"
             />
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-2 py-1.5 sm:px-3 sm:py-2 rounded-full bg-white/10 border border-white/20 text-[11px] sm:text-sm font-semibold text-white hover:bg-white/20 transition"
+          >
+            Home
           </Link>
 
           <button className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-full bg-white/10 border border-white/20 text-sm text-white hover:bg-white/20 transition">
@@ -166,14 +165,15 @@ export default function Navbar() {
             />
           </form>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
             {isLoggedIn ? (
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen((open) => !open)}
-                  className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-white bg-white/10 border border-white/20 rounded-full px-3 sm:px-4 py-2 hover:bg-white/20 transition"
+                  className="flex items-center gap-1 text-xs sm:text-sm font-semibold text-white bg-white/10 border border-white/20 rounded-full px-2.5 sm:px-4 py-2 hover:bg-white/20 transition"
                 >
-                  {user.name}
+                  <User size={18} />
+                  <span className="hidden sm:inline">{user.name}</span>
                   <ChevronDown size={14} className="hidden sm:inline" />
                 </button>
 
@@ -217,7 +217,7 @@ export default function Navbar() {
             ) : (
               <button
                 onClick={() => setOpenLogin(true)}
-                className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white bg-white/10 border border-white/20 rounded-full px-3 py-2 hover:bg-white/20 transition"
+                className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-white bg-white/10 border border-white/20 rounded-full px-2.5 sm:px-3 py-2 hover:bg-white/20 transition"
                 aria-label="Open login"
               >
                 <User size={18} />
@@ -227,7 +227,7 @@ export default function Navbar() {
 
             <button
               onClick={() => setCartOpen(true)}
-              className="relative flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-amber-400 text-green-950 shadow hover:bg-amber-300 transition"
+              className="relative flex items-center gap-2 px-2.5 sm:px-4 py-2 rounded-full bg-amber-400 text-green-950 shadow hover:bg-amber-300 transition"
               aria-label="Open cart"
             >
               <ShoppingCart size={18} />
@@ -250,26 +250,26 @@ export default function Navbar() {
         </nav>
       </div>
 
-      <div className={`hidden lg:block border-b border-white/10 ${effectiveCompact ? "hidden" : ""}`}>
+      <div className={`border-b border-white/10 ${effectiveCompact ? "hidden" : ""}`}>
         <div
-          className={`max-w-7xl mx-auto px-4 py-3 flex items-center gap-3 overflow-x-auto scroll-smooth transition-transform transition-opacity duration-300 will-change-transform ${
+          className={`max-w-7xl mx-auto px-4 py-2 sm:py-3 flex items-center gap-2 sm:gap-3 overflow-x-auto scroll-smooth transition-transform transition-opacity duration-300 will-change-transform ${
             showCategories ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none"
           }`}
         >
           <Link
             href="/products"
-            className="text-sm font-semibold text-white border border-dashed border-white/50 px-4 h-10 rounded-full hover:bg-white/10 transition inline-flex items-center justify-center whitespace-nowrap leading-none"
+            className="text-xs sm:text-sm font-semibold text-white border border-dashed border-white/50 px-3 sm:px-4 h-9 sm:h-10 rounded-full hover:bg-white/10 transition inline-flex items-center justify-center whitespace-nowrap leading-none"
           >
             View all
           </Link>
           {categories.length === 0 ? (
-            <span className="text-sm text-white/70">Loading categories...</span>
+            <span className="text-xs sm:text-sm text-white/70">Loading categories...</span>
           ) : (
             categories.map((cat) => (
               <Link
                 key={cat}
                 href={`/products?category=${encodeURIComponent(cat)}`}
-                className="text-sm font-semibold text-white bg-white/10 border border-white/20 px-4 h-10 rounded-full hover:bg-white/20 transition inline-flex items-center justify-center whitespace-nowrap leading-none"
+                className="text-xs sm:text-sm font-semibold text-white bg-white/10 border border-white/20 px-3 sm:px-4 h-9 sm:h-10 rounded-full hover:bg-white/20 transition inline-flex items-center justify-center whitespace-nowrap leading-none"
               >
                 {cat}
               </Link>

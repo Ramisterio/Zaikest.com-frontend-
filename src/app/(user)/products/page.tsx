@@ -99,6 +99,19 @@ export default function ProductsPage() {
     category: cat,
     products: searchFilteredProducts.filter((p) => p.category?.name === cat),
   }))
+  const gridVariants = {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: 0.04,
+        delayChildren: 0.05,
+      },
+    },
+  }
+  const cardVariants = {
+    hidden: { opacity: 0, y: 12 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+  }
 
   return (
     <main className="py-10 sm:py-12 max-w-7xl mx-auto px-4">
@@ -149,8 +162,8 @@ export default function ProductsPage() {
                 className={`whitespace-nowrap px-4 sm:px-5 py-2 rounded-full font-semibold transition border inline-flex items-center gap-2
                   ${
                     selectedCategory === cat
-                      ? "bg-green-700 text-white border-green-700"
-                      : "bg-white text-green-900 border-green-100 hover:border-green-300"
+                      ? "bg-[#6b6f77] text-white border-[#6b6f77]"
+                      : "bg-[#eef0f2] text-[#1f2328] border-[#d7dbe0] hover:border-[#b8bdc4]"
                   }
                 `}
               >
@@ -194,17 +207,27 @@ export default function ProductsPage() {
                       View all
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <motion.div
+                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 justify-items-center sm:justify-items-stretch"
+                    variants={gridVariants}
+                    initial="hidden"
+                    animate="show"
+                  >
                     {group.products.map((product) => (
-                      <div key={product._id} className="w-full">
+                      <motion.div
+                        key={product._id}
+                        className="w-full"
+                        variants={cardVariants}
+                      >
                         <ProductCard
                           product={product}
                           onCategoryClick={(cat) => setSelectedCategory(cat)}
                           compact
+                          tone="gray"
                         />
-                      </div>
+                      </motion.div>
                     ))}
-                  </div>
+                  </motion.div>
                 </section>
               )
             )}
@@ -218,16 +241,20 @@ export default function ProductsPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 justify-items-center sm:justify-items-stretch"
+            variants={gridVariants}
+            initial="hidden"
+            animate="show"
           >
             {filteredProducts.map((product) => (
-              <div key={product._id} className="w-full">
+              <motion.div key={product._id} className="w-full" variants={cardVariants}>
                 <ProductCard
                   product={product}
                   onCategoryClick={(cat) => setSelectedCategory(cat)}
                   compact
+                  tone="gray"
                 />
-              </div>
+              </motion.div>
             ))}
           </motion.div>
         </AnimatePresence>

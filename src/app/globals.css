@@ -18,6 +18,7 @@
   --ring: rgba(196, 29, 29, 0.35);
   --font-body: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Sora", "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --nav-h: 96px;
 }
 
 * {

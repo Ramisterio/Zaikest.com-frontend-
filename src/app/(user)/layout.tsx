@@ -27,7 +27,7 @@ export default function UserLayout({ children }: UserLayoutProps) {
   return (
     <CartProvider>
       <Navbar />
-      <main className="flex-1 relative">{children}</main>
+      <main className="flex-1 relative pt-[var(--nav-h)]">{children}</main>
       <Footer />
     </CartProvider>
   );

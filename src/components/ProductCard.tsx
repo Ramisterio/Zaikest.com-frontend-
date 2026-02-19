@@ -19,10 +19,14 @@ export default function ProductCard({
   product,
   onCategoryClick,
   compact,
+  tone = "default",
+  imageFit = "cover",
 }: {
   product: Product
   onCategoryClick?: (category: string) => void
   compact?: boolean
+  tone?: "default" | "gray"
+  imageFit?: "cover" | "contain"
 }) {
   const { cart, addToCart, increaseQuantity, decreaseQuantity, removeFromCart } = useCart()
   const cartItem = cart.find((item) => item._id === product._id)
@@ -57,6 +61,10 @@ export default function ProductCard({
   }
 
   const isCompact = !!compact
+  const cardToneClass =
+    tone === "gray"
+      ? "bg-[#f0f1f3] border border-[#d7dbe0] shadow-sm hover:shadow-lg"
+      : "bg-white/90 border border-green-100 shadow-sm hover:shadow-xl"
 
   return (
     <motion.div
@@ -65,7 +73,7 @@ export default function ProductCard({
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -6 }}
       transition={{ duration: 0.3 }}
-      className="bg-white/90 rounded-2xl overflow-hidden border border-green-100 shadow-sm hover:shadow-xl transition"
+      className={`w-full max-w-[240px] mx-auto sm:max-w-none sm:mx-0 rounded-2xl overflow-hidden transition ${cardToneClass}`}
     >
       {/* Image */}
       <div className="relative group">
@@ -95,15 +103,15 @@ export default function ProductCard({
             }
             setImageSrc("")
           }}
-          className={`w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
-            isCompact ? "h-40" : "h-48"
+          className={`w-full ${imageFit === "contain" ? "object-contain bg-white" : "object-cover"} transition-transform duration-500 ${
+            isCompact ? "h-32 sm:h-40 md:h-44" : "h-40 sm:h-48 md:h-52"
           }`}
         />
 
         {/* Category Badge */}
         <button
           onClick={() => onCategoryClick?.(categoryName)}
-          className="absolute top-3 left-3 bg-white/90 text-green-900 text-xs px-3 py-1 rounded-full border border-green-100 hover:border-green-300 transition"
+          className="absolute top-3 left-3 z-10 bg-white/90 text-green-900 text-xs px-3 py-1 rounded-full border border-green-100 hover:border-green-300 transition"
         >
           {categoryName}
         </button>
@@ -112,28 +120,26 @@ export default function ProductCard({
       {/* Content */}
       <div className={`flex flex-col ${isCompact ? "p-3 gap-2" : "p-4 gap-3"}`}>
         <h2
-          className={`font-semibold text-green-950 line-clamp-1 ${
-            isCompact ? "text-sm" : "text-base"
+          className={`font-semibold text-green-950 line-clamp-2 sm:line-clamp-1 ${
+            isCompact ? "text-sm sm:text-base" : "text-base sm:text-lg"
           }`}
         >
           {product.name}
         </h2>
 
-        <div className="flex items-center justify-between">
-          <p className={`text-green-900 font-bold ${isCompact ? "text-base" : "text-lg"}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2">
+          <p className={`text-green-900 font-bold ${isCompact ? "text-base sm:text-lg" : "text-lg sm:text-xl"}`}>
             PKR {product.price}
           </p>
-          <span className="text-xs text-[#5f6f61] bg-green-50 px-2 py-1 rounded-full">
+          <span className="text-[11px] sm:text-xs text-[#5f6f61] bg-green-50 px-2 py-1 rounded-full w-fit">
             Ready to ship
           </span>
         </div>
 
         <div
-          className={`flex items-center justify-between ${
-            isCompact ? "gap-2 flex-nowrap" : "gap-3"
-          }`}
+          className="flex items-center justify-between flex-wrap gap-2"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 order-1">
             <button
               onClick={handleDecrease}
               disabled={quantity === 0}
@@ -164,8 +170,8 @@ export default function ProductCard({
 
           <button
             onClick={handleIncrease}
-            className={`inline-flex items-center justify-center text-center bg-green-600 text-white rounded-full font-semibold hover:bg-green-700 transition whitespace-nowrap ${
-              isCompact ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-xs"
+            className={`inline-flex items-center justify-center text-center bg-green-600 text-white rounded-full font-semibold hover:bg-green-700 transition whitespace-nowrap w-full order-2 ${
+              isCompact ? "px-2 py-1 text-[11px] sm:text-xs" : "px-3 py-1.5 text-xs sm:text-sm"
             }`}
             aria-label="Add to cart"
           >

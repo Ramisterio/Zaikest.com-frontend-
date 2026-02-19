@@ -133,7 +133,7 @@ export default function HomePage() {
     <>
       <Navbar />
 
-      <main className="bg-transparent">
+      <main className="bg-transparent pt-[var(--nav-h)]">
         <section className="max-w-7xl mx-auto px-4 pt-8 sm:pt-10 pb-8">
           <div className="relative overflow-hidden rounded-3xl border border-green-200 bg-white/10">
             <div
