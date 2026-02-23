@@ -268,29 +268,29 @@ export default function ProductsPage() {
 
       {/* ADD FORM */}
       {showForm && (
-        <div className="bg-white border rounded p-4 mb-6 grid grid-cols-1 md:grid-cols-6 gap-3 shadow">
+        <div className="bg-white border rounded p-4 mb-6 grid grid-cols-1 md:grid-cols-6 gap-4 shadow">
           <input
             placeholder="Product name"
-            className="border p-2 rounded md:col-span-2"
+            className="border p-2 rounded md:col-span-2 w-full"
             value={newProductName}
             onChange={(e) => setNewProductName(sanitizeText(e.target.value))}
           />
           <input
             type="number"
             placeholder="Price"
-            className="border p-2 rounded"
+            className="border p-2 rounded w-full"
             value={newProductPrice}
             onChange={(e) => setNewProductPrice(sanitizeNumber(e.target.value))}
           />
           <input
             type="number"
             placeholder="Stock"
-            className="border p-2 rounded"
+            className="border p-2 rounded w-full"
             value={newProductStock}
             onChange={(e) => setNewProductStock(sanitizeNumber(e.target.value))}
           />
           <select
-            className="border p-2 rounded"
+            className="border p-2 rounded w-full"
             value={newProductCategory}
             onChange={(e) => setNewProductCategory(e.target.value)}
           >
@@ -301,7 +301,7 @@ export default function ProductsPage() {
               </option>
             ))}
           </select>
-          <input type="file" onChange={handleImage} />
+          <input className="w-full" type="file" onChange={handleImage} />
           {imagePreview && (
             <AdminImage src={imagePreview} className="h-16 w-16 rounded object-cover" />
           )}

@@ -135,16 +135,16 @@ export default function CategoryManagement() {
       <h1 className="text-3xl font-bold mb-6">Category Management</h1>
 
       {/* ERROR MESSAGE */}
-      {error && <p className="text-green-500 mb-4">{error}</p>}
+      {error && <p className="text-red-600 mb-4 font-semibold">{error}</p>}
 
       {/* ADD CATEGORY */}
-      <div className="mb-6 flex gap-2">
+      <div className="mb-6 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
         <input
           type="text"
           placeholder="New category name"
           value={newCategory}
           onChange={(e) => setNewCategory(sanitizeText(e.target.value))}
-          className="border p-2 rounded flex-1"
+          className="border p-2 rounded w-full"
         />
         <button
           onClick={handleAdd}
@@ -187,7 +187,8 @@ export default function CategoryManagement() {
                   category.name
                 )}
               </td>
-              <td className="p-2 border flex gap-2 justify-center">
+              <td className="p-2 border">
+                <div className="flex gap-2 justify-center">
                 {editingId === category._id ? (
                   <button
                     onClick={handleSave}
@@ -207,10 +208,11 @@ export default function CategoryManagement() {
                 <button
                   onClick={() => handleDelete(category._id)}
                   disabled={actionLoading}
-                  className="bg-green-500 text-white px-3 py-1 rounded disabled:opacity-50"
+                  className="bg-red-600 text-white px-3 py-1 rounded disabled:opacity-50"
                 >
                   Delete
                 </button>
+                </div>
               </td>
             </tr>
           ))}

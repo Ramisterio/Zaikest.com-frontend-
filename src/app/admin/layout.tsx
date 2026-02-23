@@ -14,6 +14,7 @@ export default function AdminLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user } = useAuth();
+  const canManageTheme = (user?.permissions || []).includes("MANAGE_THEME");
 
   const menuItems = [
     { name: "Dashboard", path: "/admin/dashboard" },
@@ -22,6 +23,7 @@ export default function AdminLayout({
     { name: "Stock", path: "/admin/stock" },
     { name: "Categories", path: "/admin/categories" },
     { name: "Orders", path: "/admin/orders" },
+    ...(canManageTheme ? [{ name: "Theme", path: "/admin/theme" }] : []),
   ];
 
   const handleLogout = async () => {

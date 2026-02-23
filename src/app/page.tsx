@@ -24,6 +24,9 @@ import PromoPosters from "../components/PromoPosters";
 import { getCategoryIcon } from "../utils/categoryIcon";
 import { API_BASE } from "../config/env";
 import { normalizeRemoteUrl, resolveAssetUrl } from "../utils/assetUrl";
+import { useTheme } from "../context/ThemeContext";
+import EditableText from "../components/theme/EditableText";
+import { useCategories } from "../context/CategoriesContext";
 
 const landingImages = [
   "/images/slide1.jpg",
@@ -32,6 +35,44 @@ const landingImages = [
   "/images/slide4.jpg",
 ];
 
+const fallbackHeroStats = [
+  { title: "20-30 min", text: "Avg delivery" },
+  { title: "Quality checked", text: "Every order" },
+  { title: "Freshness", text: "Guaranteed" },
+];
+
+const fallbackHighlights = [
+  {
+    title: "Homemade flavors",
+    text: "Authentic dishes and pastes prepared with real ingredients.",
+    icon: Sparkles,
+  },
+  {
+    title: "Smart savings",
+    text: "Daily deals and bundles tailored to your kitchen.",
+    icon: Wallet,
+  },
+  {
+    title: "Fast support",
+    text: "Friendly help whenever you need it, before or after delivery.",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Fresh ingredients",
+    text: "Handpicked pantry goods with verified freshness.",
+    icon: Leaf,
+  },
+  {
+    title: "Same-day delivery",
+    text: "Quick dispatch so staples reach you in time.",
+    icon: Truck,
+  },
+  {
+    title: "Quality checked",
+    text: "Every order reviewed for taste and standards.",
+    icon: BadgeCheck,
+  },
+];
 const fallbackCategories = [
   { name: "Dishes", icon: Soup, color: "bg-green-50" },
   { name: "Pastes", icon: CookingPot, color: "bg-amber-50" },
@@ -50,15 +91,13 @@ type Product = {
 }
 
 const PRODUCTS_API = `${API_BASE}/v1/products`;
-const CATEGORIES_API = `${API_BASE}/v1/categories`;
 
 export default function HomePage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<{ _id: string; name: string }[]>(
-    []
-  );
+  const { categories } = useCategories();
+  const { theme, editMode, canManageTheme, updateTheme } = useTheme();
 
   const scroll = (direction: "left" | "right") => {
     if (!scrollRef.current) return;
@@ -96,19 +135,6 @@ export default function HomePage() {
     fetchProducts();
   }, []);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch(CATEGORIES_API, { credentials: "include" });
-        const json = await res.json();
-        setCategories(json?.data || []);
-      } catch {
-        setCategories([]);
-      }
-    };
-    fetchCategories();
-  }, []);
-
   const categoryCards = useMemo(() => {
     if (!categories.length) return fallbackCategories;
   const colors = [
@@ -129,6 +155,36 @@ export default function HomePage() {
     });
   }, [categories]);
 
+  const heroStats = theme.heroStats?.length ? theme.heroStats : fallbackHeroStats;
+  const highlightCards = theme.highlights?.length
+    ? theme.highlights.map((item, index) => ({
+        ...item,
+        icon: fallbackHighlights[index % fallbackHighlights.length].icon,
+      }))
+    : fallbackHighlights;
+
+  const heroBg =
+    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=2000&q=80";
+  const bannerBg =
+    "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=2000&q=80";
+
+  const updateHeroStat = (index: number, key: "title" | "text", value: string) => {
+    const next = heroStats.map((stat, i) =>
+      i === index ? { ...stat, [key]: value } : stat
+    );
+    updateTheme({ heroStats: next });
+  };
+
+  const updateHighlight = (index: number, key: "title" | "text", value: string) => {
+    const next = highlightCards.map((card, i) =>
+      i === index
+        ? { title: key === "title" ? value : card.title, text: key === "text" ? value : card.text }
+        : { title: card.title, text: card.text }
+    );
+    updateTheme({ highlights: next.map(({ title, text }) => ({ title, text })) });
+  };
+
+
   return (
     <>
       <Navbar />
@@ -139,8 +195,7 @@ export default function HomePage() {
             <div
               className="absolute inset-0 bg-cover bg-center animate-hero-pan"
               style={{
-                backgroundImage:
-                  "url(https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=2000&q=80)",
+                backgroundImage: `url(${heroBg})`,
               }}
               aria-hidden
             />
@@ -149,43 +204,125 @@ export default function HomePage() {
             <div className="relative px-6 py-14 sm:px-12 sm:py-20 lg:py-24 max-w-4xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-semibold backdrop-blur">
                 <Leaf size={14} />
-                Zaikest fresh pantry
+                <EditableText
+                  value={theme.content.heroPill}
+                  fallback="Zaikest fresh pantry"
+                  editMode={editMode && canManageTheme}
+                  onSave={(next) => updateTheme({ content: { heroPill: next } })}
+                />
               </div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mt-5">
-                Homemade flavors and pantry essentials delivered fast.
-              </h1>
-              <p className="text-sm sm:text-base md:text-lg text-white/90 mt-3 max-w-2xl">
-                Shop daily kitchen favorites, made with care and brought to your door in minutes.
-              </p>
+              <EditableText
+                as="h1"
+                className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mt-5"
+                value={theme.content.heroTitle}
+                fallback="Homemade flavors and pantry essentials delivered fast."
+                editMode={editMode && canManageTheme}
+                onSave={(next) => updateTheme({ content: { heroTitle: next } })}
+                multiline
+              />
+              <EditableText
+                as="p"
+                className="text-sm sm:text-base md:text-lg text-white/90 mt-3 max-w-2xl"
+                value={theme.content.heroSubtitle}
+                fallback="Shop daily kitchen favorites, made with care and brought to your door in minutes."
+                editMode={editMode && canManageTheme}
+                onSave={(next) => updateTheme({ content: { heroSubtitle: next } })}
+                multiline
+              />
               <div className="flex flex-wrap gap-3 mt-6">
-                <Link
-                  href="/products"
-                  className="px-6 py-3 rounded-full bg-amber-400 text-green-950 font-semibold shadow hover:bg-amber-300 transition"
-                >
-                  Start shopping
-                </Link>
-                <Link
-                  href="/products"
-                  className="px-6 py-3 rounded-full bg-white/10 border border-white/40 text-white font-semibold hover:bg-white/20 transition"
-                >
-                  Explore deals
-                </Link>
+                {editMode && canManageTheme ? (
+                  <>
+                    <span className="px-6 py-3 rounded-full bg-amber-400 text-green-950 font-semibold shadow">
+                      <EditableText
+                        value={theme.content.heroPrimaryCta}
+                        fallback="Start shopping"
+                        editMode={true}
+                        onSave={(next) => updateTheme({ content: { heroPrimaryCta: next } })}
+                      />
+                    </span>
+                    <span className="px-6 py-3 rounded-full bg-white/10 border border-white/40 text-white font-semibold">
+                      <EditableText
+                        value={theme.content.heroSecondaryCta}
+                        fallback="Explore deals"
+                        editMode={true}
+                        onSave={(next) => updateTheme({ content: { heroSecondaryCta: next } })}
+                      />
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href="/products"
+                      className="px-6 py-3 rounded-full bg-amber-400 text-green-950 font-semibold shadow hover:bg-amber-300 transition"
+                    >
+                      {theme.content.heroPrimaryCta || "Start shopping"}
+                    </Link>
+                    <Link
+                      href="/products"
+                      className="px-6 py-3 rounded-full bg-white/10 border border-white/40 text-white font-semibold hover:bg-white/20 transition"
+                    >
+                      {theme.content.heroSecondaryCta || "Explore deals"}
+                    </Link>
+                  </>
+                )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-8 text-xs sm:text-sm">
                 <div className="bg-white/15 border border-white/20 rounded-2xl p-3 text-center text-white">
                   <Clock size={18} className="mx-auto" />
-                  <p className="font-semibold">20-30 min</p>
-                  <p className="text-white/80">Avg delivery</p>
+                  <EditableText
+                    as="p"
+                    className="font-semibold"
+                    value={heroStats[0]?.title || fallbackHeroStats[0].title}
+                    fallback={fallbackHeroStats[0].title}
+                    editMode={editMode && canManageTheme}
+                    onSave={(next) => updateHeroStat(0, "title", next)}
+                  />
+                  <EditableText
+                    as="p"
+                    className="text-white/80"
+                    value={heroStats[0]?.text || fallbackHeroStats[0].text}
+                    fallback={fallbackHeroStats[0].text}
+                    editMode={editMode && canManageTheme}
+                    onSave={(next) => updateHeroStat(0, "text", next)}
+                  />
                 </div>
                 <div className="bg-white/15 border border-white/20 rounded-2xl p-3 text-center text-white">
                   <ShieldCheck size={18} className="mx-auto" />
-                  <p className="font-semibold">Quality checked</p>
-                  <p className="text-white/80">Every order</p>
+                  <EditableText
+                    as="p"
+                    className="font-semibold"
+                    value={heroStats[1]?.title || fallbackHeroStats[1].title}
+                    fallback={fallbackHeroStats[1].title}
+                    editMode={editMode && canManageTheme}
+                    onSave={(next) => updateHeroStat(1, "title", next)}
+                  />
+                  <EditableText
+                    as="p"
+                    className="text-white/80"
+                    value={heroStats[1]?.text || fallbackHeroStats[1].text}
+                    fallback={fallbackHeroStats[1].text}
+                    editMode={editMode && canManageTheme}
+                    onSave={(next) => updateHeroStat(1, "text", next)}
+                  />
                 </div>
                 <div className="bg-white/15 border border-white/20 rounded-2xl p-3 text-center text-white">
                   <Leaf size={18} className="mx-auto" />
-                  <p className="font-semibold">Freshness</p>
-                  <p className="text-white/80">Guaranteed</p>
+                  <EditableText
+                    as="p"
+                    className="font-semibold"
+                    value={heroStats[2]?.title || fallbackHeroStats[2].title}
+                    fallback={fallbackHeroStats[2].title}
+                    editMode={editMode && canManageTheme}
+                    onSave={(next) => updateHeroStat(2, "title", next)}
+                  />
+                  <EditableText
+                    as="p"
+                    className="text-white/80"
+                    value={heroStats[2]?.text || fallbackHeroStats[2].text}
+                    fallback={fallbackHeroStats[2].text}
+                    editMode={editMode && canManageTheme}
+                    onSave={(next) => updateHeroStat(2, "text", next)}
+                  />
                 </div>
               </div>
             </div>
@@ -198,10 +335,28 @@ export default function HomePage() {
 
         <section className="max-w-7xl mx-auto px-4 pb-8">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-2xl font-bold text-green-950">Shop by category</h2>
-            <Link href="/products" className="text-sm font-semibold text-green-700 hover:text-green-800">
-              View all
-            </Link>
+            <EditableText
+              as="h2"
+              className="text-2xl font-bold text-green-950"
+              value={theme.content.categoryHeading}
+              fallback="Shop by category"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { categoryHeading: next } })}
+            />
+            {editMode && canManageTheme ? (
+              <span className="text-sm font-semibold text-green-700">
+                <EditableText
+                  value={theme.content.categoryViewAll}
+                  fallback="View all"
+                  editMode={true}
+                  onSave={(next) => updateTheme({ content: { categoryViewAll: next } })}
+                />
+              </span>
+            ) : (
+              <Link href="/products" className="text-sm font-semibold text-green-700 hover:text-green-800">
+                {theme.content.categoryViewAll || "View all"}
+              </Link>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             {categoryCards.map((cat) => (
@@ -222,24 +377,33 @@ export default function HomePage() {
             <div
               className="absolute inset-0 bg-cover bg-center animate-hero-pan"
               style={{
-                backgroundImage:
-                  "url(https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=2000&q=80)",
+                backgroundImage: `url(${bannerBg})`,
               }}
               aria-hidden
             />
             <div className="absolute inset-0 bg-black/65" aria-hidden />
             <div className="relative px-6 py-12 sm:px-12 sm:py-16">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold text-white drop-shadow-[0_6px_18px_rgba(0,0,0,0.45)]">
-                  Fresh picks for you
-                </h2>
+                <EditableText
+                  as="h2"
+                  className="text-2xl font-bold text-white drop-shadow-[0_6px_18px_rgba(0,0,0,0.45)]"
+                  value={theme.content.featuredHeading}
+                  fallback="Fresh picks for you"
+                  editMode={editMode && canManageTheme}
+                  onSave={(next) => updateTheme({ content: { featuredHeading: next } })}
+                />
               </div>
 
               <div className="mb-4">
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-sm font-semibold text-white/90">
-                    Categories
-                  </span>
+                  <EditableText
+                    as="span"
+                    className="text-sm font-semibold text-white/90"
+                    value={theme.content.featuredCategoriesLabel}
+                    fallback="Categories"
+                    editMode={editMode && canManageTheme}
+                    onSave={(next) => updateTheme({ content: { featuredCategoriesLabel: next } })}
+                  />
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => scrollCategories("left")}
@@ -281,9 +445,14 @@ export default function HomePage() {
               </div>
 
               <div className="flex items-center justify-between gap-2 mt-6">
-                <span className="text-sm font-semibold text-white/90">
-                  Products
-                </span>
+                <EditableText
+                  as="span"
+                  className="text-sm font-semibold text-white/90"
+                  value={theme.content.featuredProductsLabel}
+                  fallback="Products"
+                  editMode={editMode && canManageTheme}
+                  onSave={(next) => updateTheme({ content: { featuredProductsLabel: next } })}
+                />
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => scroll("left")}
@@ -325,85 +494,38 @@ export default function HomePage() {
         <section className="max-w-7xl mx-auto px-4 pb-14">
           <div className="marquee py-2">
             <div className="marquee-track gap-6 px-4">
-              {[
-                {
-                  title: "Homemade flavors",
-                  text: "Authentic dishes and pastes prepared with real ingredients.",
-                  icon: Sparkles,
-                },
-                {
-                  title: "Smart savings",
-                  text: "Daily deals and bundles tailored to your kitchen.",
-                  icon: Wallet,
-                },
-                {
-                  title: "Fast support",
-                  text: "Friendly help whenever you need it, before or after delivery.",
-                  icon: ShieldCheck,
-                },
-                {
-                  title: "Fresh ingredients",
-                  text: "Handpicked pantry goods with verified freshness.",
-                  icon: Leaf,
-                },
-                {
-                  title: "Same-day delivery",
-                  text: "Quick dispatch so staples reach you in time.",
-                  icon: Truck,
-                },
-                {
-                  title: "Quality checked",
-                  text: "Every order reviewed for taste and standards.",
-                  icon: BadgeCheck,
-                },
-              ].map((item) => (
+              {highlightCards.map((item, index) => (
                 <div
-                  key={item.title}
+                  key={`${item.title}-${index}`}
                   className="min-w-[240px] sm:min-w-[280px] bg-[#0f2a1a] rounded-2xl p-5 shadow-md hover:shadow-lg transition"
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <span className="w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center">
                       <item.icon size={18} />
                     </span>
-                    <h3 className="text-lg font-bold text-white">{item.title}</h3>
+                    <EditableText
+                      as="h3"
+                      className="text-lg font-bold text-white"
+                      value={item.title}
+                      fallback={item.title}
+                      editMode={editMode && canManageTheme}
+                      onSave={(next) => updateHighlight(index, "title", next)}
+                    />
                   </div>
-                  <p className="text-white font-semibold">{item.text}</p>
+                  <EditableText
+                    as="p"
+                    className="text-white font-semibold"
+                    value={item.text}
+                    fallback={item.text}
+                    editMode={editMode && canManageTheme}
+                    onSave={(next) => updateHighlight(index, "text", next)}
+                    multiline
+                  />
                 </div>
               ))}
-              {[
-                {
-                  title: "Homemade flavors",
-                  text: "Authentic dishes and pastes prepared with real ingredients.",
-                  icon: Sparkles,
-                },
-                {
-                  title: "Smart savings",
-                  text: "Daily deals and bundles tailored to your kitchen.",
-                  icon: Wallet,
-                },
-                {
-                  title: "Fast support",
-                  text: "Friendly help whenever you need it, before or after delivery.",
-                  icon: ShieldCheck,
-                },
-                {
-                  title: "Fresh ingredients",
-                  text: "Handpicked pantry goods with verified freshness.",
-                  icon: Leaf,
-                },
-                {
-                  title: "Same-day delivery",
-                  text: "Quick dispatch so staples reach you in time.",
-                  icon: Truck,
-                },
-                {
-                  title: "Quality checked",
-                  text: "Every order reviewed for taste and standards.",
-                  icon: BadgeCheck,
-                },
-              ].map((item, index) => (
+              {highlightCards.map((item, index) => (
                 <div
-                  key={`${item.title}-${index}`}
+                  key={`${item.title}-dup-${index}`}
                   className="min-w-[240px] sm:min-w-[280px] bg-[#0f2a1a] rounded-2xl p-5 shadow-md hover:shadow-lg transition"
                   aria-hidden
                 >

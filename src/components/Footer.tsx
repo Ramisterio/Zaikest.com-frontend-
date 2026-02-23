@@ -7,9 +7,12 @@ import { FaTiktok, FaHeadset } from "react-icons/fa6";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { sanitizeEmail } from "../utils/sanitize";
+import { useTheme } from "../context/ThemeContext";
+import EditableText from "./theme/EditableText";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
+  const { theme, editMode, canManageTheme, updateTheme } = useTheme();
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +41,13 @@ export default function Footer() {
             </Link>
           </motion.div>
           <p className="text-sm text-green-100 max-w-xs">
-            Zaikest delivers homemade dishes, fresh pastes, and pantry essentials right to your door.
+            <EditableText
+              value={theme.content.footerBlurb}
+              fallback="Zaikest delivers homemade dishes, fresh pastes, and pantry essentials right to your door."
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { footerBlurb: next } })}
+              multiline
+            />
           </p>
         </div>
 
@@ -119,8 +128,23 @@ export default function Footer() {
       {/* NEWSLETTER */}
       <div className="max-w-3xl mx-auto px-4 pb-10">
         <div className="bg-white/10 border border-white/10 rounded-3xl p-6 text-center">
-          <h2 className="text-lg md:text-xl font-semibold mb-3">Subscribe to our Newsletter</h2>
-          <p className="text-green-100 mb-5">New arrivals, seasonal picks, and exclusive bundles.</p>
+          <EditableText
+            as="h2"
+            className="text-lg md:text-xl font-semibold mb-3"
+            value={theme.content.newsletterTitle}
+            fallback="Subscribe to our Newsletter"
+            editMode={editMode && canManageTheme}
+            onSave={(next) => updateTheme({ content: { newsletterTitle: next } })}
+          />
+          <EditableText
+            as="p"
+            className="text-green-100 mb-5"
+            value={theme.content.newsletterSubtitle}
+            fallback="New arrivals, seasonal picks, and exclusive bundles."
+            editMode={editMode && canManageTheme}
+            onSave={(next) => updateTheme({ content: { newsletterSubtitle: next } })}
+            multiline
+          />
 
           <form
             onSubmit={handleSubscribe}
@@ -134,19 +158,43 @@ export default function Footer() {
               onChange={(e) => setEmail(sanitizeEmail(e.target.value))}
               required
             />
-            <button
-              type="submit"
-              className="px-7 py-3 bg-[#f3b451] text-gray-900 font-semibold rounded-full hover:bg-[#f2a93d] transition-all"
-            >
-              Subscribe
-            </button>
+            {editMode && canManageTheme ? (
+              <span className="px-7 py-3 bg-[#f3b451] text-gray-900 font-semibold rounded-full">
+                <EditableText
+                  value={theme.content.newsletterButton}
+                  fallback="Subscribe"
+                  editMode={true}
+                  onSave={(next) => updateTheme({ content: { newsletterButton: next } })}
+                />
+              </span>
+            ) : (
+              <button
+                type="submit"
+                className="px-7 py-3 bg-[#f3b451] text-gray-900 font-semibold rounded-full hover:bg-[#f2a93d] transition-all"
+              >
+                {theme.content.newsletterButton || "Subscribe"}
+              </button>
+            )}
           </form>
         </div>
       </div>
 
       {/* BOTTOM BAR */}
       <div className="border-t border-white/10 py-5 text-center text-green-100 text-sm">
-        Copyright {new Date().getFullYear()} Zaikest. All rights reserved. Developed by Naeem Rehman.
+        <span>
+          Copyright {new Date().getFullYear()} Zaikest. All rights reserved.
+          {" "}
+          Developed by{" "}
+          <a
+            href="https://naeemrehman.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-white underline underline-offset-4 hover:text-white/90"
+          >
+            Naeem Rehman
+          </a>
+          .
+        </span>
       </div>
     </footer>
   );

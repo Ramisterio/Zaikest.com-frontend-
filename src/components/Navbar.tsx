@@ -10,9 +10,10 @@ import LoginForm from "./LoginForm";
 import RegisterForm from "./RegisterForm";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import { useCategories } from "../context/CategoriesContext";
 import CartDrawer from "./CartDrawer";
 import { sanitizeSearch } from "../utils/sanitize";
-import { apiPath } from "../config/env";
 
 export default function Navbar() {
   const { cart } = useCart();
@@ -20,6 +21,7 @@ export default function Navbar() {
 
   const { user, logout } = useAuth();
   const isLoggedIn = !!user;
+  const { editMode, setEditMode, canManageTheme } = useTheme();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -36,24 +38,8 @@ export default function Navbar() {
   const headerRef = useRef<HTMLElement | null>(null);
 
 
-  const [categories, setCategories] = useState<string[]>([]);
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch(apiPath("/v1/categories"), {
-          credentials: "include",
-        });
-        const json = await res.json();
-        const names = (json?.data || []).map((c: { name: string }) => c.name);
-        setCategories(names);
-      } catch {
-        setCategories([]);
-      }
-    };
-
-    fetchCategories();
-  }, []);
+  const { categories } = useCategories();
+  const categoryNames = categories.map((c) => c.name);
 
   useEffect(() => {
     setShowCategories(true);
@@ -130,15 +116,17 @@ export default function Navbar() {
             effectiveCompact ? "py-2" : "py-2.5 sm:py-3"
           }`}
         >
-          <Link href="/" className="flex items-center shrink-0">
-            <Image
-              src="/images/zaikest-logo1.png"
-              alt="Zaikest"
-              width={96}
-              height={28}
-              className="object-contain w-[44px] sm:w-[56px] md:w-[64px] h-auto"
-            />
-          </Link>
+          <div className="relative flex items-center shrink-0">
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/images/zaikest-logo1.png"
+                alt="Zaikest"
+                width={96}
+                height={28}
+                className="object-contain w-[44px] sm:w-[56px] md:w-[64px] h-auto"
+              />
+            </Link>
+          </div>
           <Link
             href="/"
             className="inline-flex items-center gap-2 px-2 py-1.5 sm:px-3 sm:py-2 rounded-full bg-white/10 border border-white/20 text-[11px] sm:text-sm font-semibold text-white hover:bg-white/20 transition"
@@ -178,40 +166,66 @@ export default function Navbar() {
                 </button>
 
                 {userMenuOpen && (
-                  <div
-                    className="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-0 sm:static sm:mt-2 sm:flex-none"
-                    onClick={() => setUserMenuOpen(false)}
-                  >
-                    <div
-                      className="w-full max-w-[320px] sm:w-52 bg-white rounded-2xl shadow-lg border border-[#f1dede] overflow-hidden text-[#1a1a1a]"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Link
-                        href="/profile"
-                        className="block px-4 py-3 hover:bg-red-50"
-                        onClick={() => setUserMenuOpen(false)}
+                  <>
+                    <button
+                      aria-label="Close user menu"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="fixed inset-0 z-40 cursor-default"
+                    />
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-50 w-[calc(100vw-2rem)] max-w-[320px] sm:left-auto sm:translate-x-0 sm:right-0 sm:w-56">
+                      <div
+                        className="bg-white rounded-2xl shadow-lg border border-[#f1dede] overflow-hidden text-[#1a1a1a]"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        Profile
-                      </Link>
-
-                      {user.role === "admin" && (
                         <Link
-                          href="/admin/dashboard"
+                          href="/profile"
                           className="block px-4 py-3 hover:bg-red-50"
                           onClick={() => setUserMenuOpen(false)}
                         >
-                          Admin Dashboard
+                          Profile
                         </Link>
-                      )}
 
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-3 text-[#c41d1d] hover:bg-red-50"
-                      >
-                        Logout
-                      </button>
+                        {user.role === "admin" && (
+                          <Link
+                            href="/admin/dashboard"
+                            className="block px-4 py-3 hover:bg-red-50"
+                            onClick={() => setUserMenuOpen(false)}
+                          >
+                            Admin Dashboard
+                          </Link>
+                        )}
+
+                        {canManageTheme && (
+                          <Link
+                            href="/admin/theme"
+                            className="block px-4 py-3 hover:bg-red-50"
+                            onClick={() => setUserMenuOpen(false)}
+                          >
+                            Edit Theme
+                          </Link>
+                        )}
+
+                        {canManageTheme && (
+                          <button
+                            onClick={() => {
+                              setEditMode(!editMode);
+                              setUserMenuOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-red-50"
+                          >
+                            Live Edit: {editMode ? "On" : "Off"}
+                          </button>
+                        )}
+
+                        <button
+                          onClick={handleLogout}
+                          className="w-full text-left px-4 py-3 text-[#c41d1d] hover:bg-red-50"
+                        >
+                          Logout
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
             ) : (
@@ -262,10 +276,10 @@ export default function Navbar() {
           >
             View all
           </Link>
-          {categories.length === 0 ? (
+          {categoryNames.length === 0 ? (
             <span className="text-xs sm:text-sm text-white/70">Loading categories...</span>
           ) : (
-            categories.map((cat) => (
+            categoryNames.map((cat) => (
               <Link
                 key={cat}
                 href={`/products?category=${encodeURIComponent(cat)}`}
@@ -295,10 +309,10 @@ export default function Navbar() {
           </form>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-            {categories.length === 0 ? (
+            {categoryNames.length === 0 ? (
               <span className="text-sm text-white/70">Loading categories...</span>
             ) : (
-              categories.map((cat) => (
+              categoryNames.map((cat) => (
                 <Link
                   key={cat}
                   href={`/products?category=${encodeURIComponent(cat)}`}
