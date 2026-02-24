@@ -45,6 +45,12 @@ export type Theme = {
   };
 };
 
+export type ThemePatch = Partial<Omit<Theme, "colors" | "content" | "company">> & {
+  colors?: Partial<Theme["colors"]>;
+  content?: Partial<Theme["content"]>;
+  company?: Partial<Theme["company"]>;
+};
+
 const defaultTheme: Theme = {
   colors: {
     primary: "#1a1a1a",
@@ -122,12 +128,12 @@ type ThemeContextType = {
   canManageTheme: boolean;
   setEditMode: (next: boolean) => void;
   refreshTheme: () => Promise<void>;
-  updateTheme: (patch: Partial<Theme>) => Promise<void>;
+  updateTheme: (patch: ThemePatch) => Promise<void>;
 };
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const mergeTheme = (prev: Theme, patch: Partial<Theme>): Theme => ({
+const mergeTheme = (prev: Theme, patch: ThemePatch): Theme => ({
   ...prev,
   ...patch,
   colors: { ...prev.colors, ...patch.colors },
@@ -174,7 +180,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   }, [canManageTheme, editMode]);
 
   const updateTheme = useCallback(
-    async (patch: Partial<Theme>) => {
+    async (patch: ThemePatch) => {
       setTheme((prev) => mergeTheme(prev, patch));
       if (!canManageTheme) return;
       try {

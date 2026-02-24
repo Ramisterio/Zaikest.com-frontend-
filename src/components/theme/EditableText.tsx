@@ -1,6 +1,6 @@
 "use client";
 
-import { ElementType, useEffect, useRef } from "react";
+import { ElementType, type FocusEvent, type KeyboardEvent, useEffect, useRef } from "react";
 import { sanitizeText } from "../../utils/sanitize";
 
 type EditableTextProps = {
@@ -45,12 +45,12 @@ export default function EditableText({
       contentEditable
       suppressContentEditableWarning
       data-placeholder={placeholder}
-      onBlur={(e) => {
+      onBlur={(e: FocusEvent<HTMLElement>) => {
         const raw = e.currentTarget.textContent || "";
         const next = sanitizeText(raw);
         if (next !== value) onSave(next);
       }}
-      onKeyDown={(e) => {
+      onKeyDown={(e: KeyboardEvent<HTMLElement>) => {
         if (!multiline && e.key === "Enter") {
           e.preventDefault();
           (e.currentTarget as HTMLElement).blur();
