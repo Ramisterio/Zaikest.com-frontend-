@@ -10,6 +10,8 @@ import { sanitizeAddress, sanitizeEmail, sanitizePhone, sanitizeText } from "../
 import { useAuth } from "../context/AuthContext";
 import { API_BASE } from "../config/env";
 import { resolvePublicUrl } from "../utils/url";
+import { useTheme } from "../context/ThemeContext";
+import EditableText from "./theme/EditableText";
 
 export default function CheckoutContent({
   variant = "page",
@@ -20,6 +22,7 @@ export default function CheckoutContent({
 }) {
   const { cart, clearCart } = useCart();
   const { user: authUser } = useAuth();
+  const { theme, editMode, canManageTheme, updateTheme } = useTheme();
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryFee = cart.length > 0 ? 0 : 0;
   const totalPrice = subtotal + deliveryFee;
@@ -400,9 +403,25 @@ export default function CheckoutContent({
         />
         <div className="absolute inset-0 bg-white/35" aria-hidden />
         <div className="relative z-10">
-        <h1 className="text-2xl font-extrabold text-white">Your cart is empty</h1>
+        <EditableText
+          as="h1"
+          className="text-2xl font-extrabold text-white"
+          value={theme.content.checkoutEmptyTitle}
+          fallback="Your cart is empty"
+          editMode={editMode && canManageTheme}
+          onSave={(next) => updateTheme({ content: { checkoutEmptyTitle: next } })}
+        />
         <Link href="/products" className="text-green-700 hover:text-green-800 mt-4 inline-block">
-          Browse Products
+          {editMode && canManageTheme ? (
+            <EditableText
+              value={theme.content.checkoutEmptyCta}
+              fallback="Browse Products"
+              editMode={true}
+              onSave={(next) => updateTheme({ content: { checkoutEmptyCta: next } })}
+            />
+          ) : (
+            theme.content.checkoutEmptyCta || "Browse Products"
+          )}
         </Link>
         </div>
       </div>
@@ -435,12 +454,23 @@ export default function CheckoutContent({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            Order Confirmed
+            <EditableText
+              value={theme.content.checkoutConfirmedTitle}
+              fallback="Order Confirmed"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { checkoutConfirmedTitle: next } })}
+            />
           </motion.h1>
 
-          <p className="text-[#5f6f61] mb-6">
-            Thank you for shopping with <span className="font-semibold">Zaikest</span>
-          </p>
+          <EditableText
+            as="p"
+            className="text-[#5f6f61] mb-6"
+            value={theme.content.checkoutConfirmedSubtitle}
+            fallback="Thank you for shopping with Zaikest"
+            editMode={editMode && canManageTheme}
+            onSave={(next) => updateTheme({ content: { checkoutConfirmedSubtitle: next } })}
+            multiline
+          />
 
           <div className="text-left bg-green-50 rounded-2xl p-4 mb-5">
             <p><strong>Name:</strong> {placedOrder?.user.name}</p>
@@ -478,14 +508,32 @@ export default function CheckoutContent({
             href="/products"
             className="inline-block bg-green-700 text-white px-6 py-3 rounded-full hover:bg-green-800 transition"
           >
-            Continue Shopping
+            {editMode && canManageTheme ? (
+              <EditableText
+                value={theme.content.checkoutContinueShoppingText}
+                fallback="Continue Shopping"
+                editMode={true}
+                onSave={(next) => updateTheme({ content: { checkoutContinueShoppingText: next } })}
+              />
+            ) : (
+              theme.content.checkoutContinueShoppingText || "Continue Shopping"
+            )}
           </Link>
 
           <button
             onClick={handleDownloadReceipt}
             className="ml-3 inline-block bg-white border border-green-200 text-green-900 px-6 py-3 rounded-full font-semibold hover:border-green-400 transition"
           >
-            Download Summary Slip
+            {editMode && canManageTheme ? (
+              <EditableText
+                value={theme.content.checkoutDownloadSlipText}
+                fallback="Download Summary Slip"
+                editMode={true}
+                onSave={(next) => updateTheme({ content: { checkoutDownloadSlipText: next } })}
+              />
+            ) : (
+              theme.content.checkoutDownloadSlipText || "Download Summary Slip"
+            )}
           </button>
         </div>
         </div>
@@ -515,7 +563,14 @@ export default function CheckoutContent({
           {error ? error : "Order placed successfully. Closing shortly..."}
         </div>
       )}
-      <h1 className="text-3xl font-bold mb-6 text-center text-green-950">Checkout</h1>
+      <EditableText
+        as="h1"
+        className="text-3xl font-bold mb-6 text-center text-green-950"
+        value={theme.content.checkoutTitle}
+        fallback="Checkout"
+        editMode={editMode && canManageTheme}
+        onSave={(next) => updateTheme({ content: { checkoutTitle: next } })}
+      />
 
       {error && (
         <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 text-center">
@@ -530,7 +585,14 @@ export default function CheckoutContent({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className={`${cardClass} space-y-4`}>
-          <h2 className="font-semibold text-xl border-b border-green-100 pb-2">Delivery Details</h2>
+          <EditableText
+            as="h2"
+            className="font-semibold text-xl border-b border-green-100 pb-2"
+            value={theme.content.checkoutDeliveryTitle}
+            fallback="Delivery Details"
+            editMode={editMode && canManageTheme}
+            onSave={(next) => updateTheme({ content: { checkoutDeliveryTitle: next } })}
+          />
 
           <label className="text-sm font-medium text-green-900">Full name</label>
           <input
@@ -591,7 +653,14 @@ export default function CheckoutContent({
         </div>
 
         <div className={cardClass}>
-          <h2 className="font-semibold text-xl border-b border-green-100 pb-2 mb-4">Order Summary</h2>
+          <EditableText
+            as="h2"
+            className="font-semibold text-xl border-b border-green-100 pb-2 mb-4"
+            value={theme.content.checkoutOrderSummaryTitle}
+            fallback="Order Summary"
+            editMode={editMode && canManageTheme}
+            onSave={(next) => updateTheme({ content: { checkoutOrderSummaryTitle: next } })}
+          />
 
           {cart.map((item) => (
             <div key={item._id} className="flex justify-between mb-2 text-sm">
@@ -627,7 +696,16 @@ export default function CheckoutContent({
                 Placing...
               </>
             ) : (
-              "Place Order"
+              (editMode && canManageTheme ? (
+                <EditableText
+                  value={theme.content.checkoutPlaceOrderText}
+                  fallback="Place Order"
+                  editMode={true}
+                  onSave={(next) => updateTheme({ content: { checkoutPlaceOrderText: next } })}
+                />
+              ) : (
+                theme.content.checkoutPlaceOrderText || "Place Order"
+              ))
             )}
           </button>
         </div>

@@ -8,6 +8,8 @@ import { useSearchParams } from "next/navigation"
 import { getCategoryIcon } from "../../../utils/categoryIcon"
 import { API_BASE } from "../../../config/env"
 import { normalizeRemoteUrl, resolveAssetUrl } from "../../../utils/assetUrl"
+import { useTheme } from "../../../context/ThemeContext"
+import EditableText from "../../../components/theme/EditableText"
 
 type Category = { _id: string; name: string }
 type Product = {
@@ -30,6 +32,7 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState<string[]>(["All"])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const { theme, editMode, canManageTheme, updateTheme } = useTheme()
   const searchQuery = (searchParams.get("search") || "").trim()
 
   useEffect(() => {
@@ -133,12 +136,23 @@ export default function ProductsPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/55 to-black/35" />
         <div className="relative text-center px-6 py-10 sm:px-10 sm:py-16 max-w-3xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-3 drop-shadow">
-            Zaikest Grocery
-          </h1>
-          <p className="text-white/90 text-sm sm:text-base md:text-lg font-semibold drop-shadow">
-            Shop category wise for dishes, pastes, spices, snacks, and pantry staples.
-          </p>
+          <EditableText
+            as="h1"
+            className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-3 drop-shadow"
+            value={theme.content.productsHeroTitle}
+            fallback="Zaikest Grocery"
+            editMode={editMode && canManageTheme}
+            onSave={(next) => updateTheme({ content: { productsHeroTitle: next } })}
+          />
+          <EditableText
+            as="p"
+            className="text-white/90 text-sm sm:text-base md:text-lg font-semibold drop-shadow"
+            value={theme.content.productsHeroSubtitle}
+            fallback="Shop category wise for dishes, pastes, spices, snacks, and pantry staples."
+            editMode={editMode && canManageTheme}
+            onSave={(next) => updateTheme({ content: { productsHeroSubtitle: next } })}
+            multiline
+          />
         </div>
       </div>
 

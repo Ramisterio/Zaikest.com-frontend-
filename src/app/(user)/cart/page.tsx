@@ -5,10 +5,13 @@ import { useCart } from "../../../context/CartContext";
 import { Trash2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import PromoPosters from "../../../components/PromoPosters";
+import { useTheme } from "../../../context/ThemeContext";
+import EditableText from "../../../components/theme/EditableText";
 
 export default function CartPage() {
   const router = useRouter();
   const { cart, removeFromCart, increaseQuantity, decreaseQuantity, clearCart } = useCart();
+  const { theme, editMode, canManageTheme, updateTheme } = useTheme();
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -30,35 +33,82 @@ export default function CartPage() {
       <div className="relative z-10 max-w-5xl mx-auto">
         {cart.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[70vh] text-center animate-fade-in">
-            <h1 className="text-3xl font-extrabold mb-2 text-white">Your cart is empty</h1>
-            <p className="text-white/80 mb-4">Looks like you have not added anything yet.</p>
+            <EditableText
+              as="h1"
+              className="text-3xl font-extrabold mb-2 text-white"
+              value={theme.content.cartEmptyTitle}
+              fallback="Your cart is empty"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { cartEmptyTitle: next } })}
+            />
+            <EditableText
+              as="p"
+              className="text-white/80 mb-4"
+              value={theme.content.cartEmptySubtitle}
+              fallback="Looks like you have not added anything yet."
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { cartEmptySubtitle: next } })}
+              multiline
+            />
             <Link
               href="/products"
               className="inline-flex items-center gap-2 text-green-700 font-semibold hover:text-green-800"
             >
               <ArrowLeft size={16} />
-              Continue shopping
+              {editMode && canManageTheme ? (
+                <EditableText
+                  value={theme.content.cartContinueCta}
+                  fallback="Continue shopping"
+                  editMode={true}
+                  onSave={(next) => updateTheme({ content: { cartContinueCta: next } })}
+                />
+              ) : (
+                theme.content.cartContinueCta || "Continue shopping"
+              )}
             </Link>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between mb-6">
-              <h1 className="text-4xl sm:text-5xl font-extrabold text-white drop-shadow-[0_6px_18px_rgba(0,0,0,0.45)] animate-slide-up">
-                Shopping Cart
-              </h1>
+              <EditableText
+                as="h1"
+                className="text-4xl sm:text-5xl font-extrabold text-white drop-shadow-[0_6px_18px_rgba(0,0,0,0.45)] animate-slide-up"
+                value={theme.content.cartTitle}
+                fallback="Shopping Cart"
+                editMode={editMode && canManageTheme}
+                onSave={(next) => updateTheme({ content: { cartTitle: next } })}
+              />
               <div className="hidden sm:flex items-center gap-4">
                 <Link
                   href="/orders"
                   className="px-4 py-2 rounded-full bg-green-700 text-white font-semibold hover:bg-green-800 transition"
                 >
-                  My Orders
+                  {editMode && canManageTheme ? (
+                    <EditableText
+                      value={theme.content.cartOrdersCta}
+                      fallback="My Orders"
+                      editMode={true}
+                      onSave={(next) => updateTheme({ content: { cartOrdersCta: next } })}
+                    />
+                  ) : (
+                    theme.content.cartOrdersCta || "My Orders"
+                  )}
                 </Link>
                 <Link
                   href="/products"
                   className="inline-flex items-center gap-2 text-white/90 font-semibold hover:text-white drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
                 >
                   <ArrowLeft size={16} />
-                  Continue shopping
+                  {editMode && canManageTheme ? (
+                    <EditableText
+                      value={theme.content.cartContinueCta}
+                      fallback="Continue shopping"
+                      editMode={true}
+                      onSave={(next) => updateTheme({ content: { cartContinueCta: next } })}
+                    />
+                  ) : (
+                    theme.content.cartContinueCta || "Continue shopping"
+                  )}
                 </Link>
               </div>
             </div>
@@ -67,14 +117,32 @@ export default function CartPage() {
                 href="/orders"
                 className="px-4 py-2 rounded-full bg-green-700 text-white font-semibold hover:bg-green-800 transition"
               >
-                My Orders
+                {editMode && canManageTheme ? (
+                  <EditableText
+                    value={theme.content.cartOrdersCta}
+                    fallback="My Orders"
+                    editMode={true}
+                    onSave={(next) => updateTheme({ content: { cartOrdersCta: next } })}
+                  />
+                ) : (
+                  theme.content.cartOrdersCta || "My Orders"
+                )}
               </Link>
               <Link
                 href="/products"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white font-semibold hover:bg-white/20 transition"
               >
                 <ArrowLeft size={16} />
-                Continue shopping
+                {editMode && canManageTheme ? (
+                  <EditableText
+                    value={theme.content.cartContinueCta}
+                    fallback="Continue shopping"
+                    editMode={true}
+                    onSave={(next) => updateTheme({ content: { cartContinueCta: next } })}
+                  />
+                ) : (
+                  theme.content.cartContinueCta || "Continue shopping"
+                )}
               </Link>
             </div>
 
@@ -123,7 +191,14 @@ export default function CartPage() {
               </div>
 
               <div className="bg-white/90 rounded-2xl border border-green-100 p-6 shadow-sm h-fit">
-                <h2 className="text-xl font-semibold text-green-950 mb-4">Order Summary</h2>
+                <EditableText
+                  as="h2"
+                  className="text-xl font-semibold text-green-950 mb-4"
+                  value={theme.content.cartSummaryTitle}
+                  fallback="Order Summary"
+                  editMode={editMode && canManageTheme}
+                  onSave={(next) => updateTheme({ content: { cartSummaryTitle: next } })}
+                />
                 <div className="flex justify-between text-sm text-[#5f6f61] mb-2">
                   <span>Items</span>
                   <span>{cart.length}</span>
@@ -146,14 +221,32 @@ export default function CartPage() {
                       : "bg-green-700 text-white hover:bg-green-800"
                     }`}
                 >
-                  Proceed to Checkout
+                  {editMode && canManageTheme ? (
+                    <EditableText
+                      value={theme.content.cartCheckoutCta}
+                      fallback="Proceed to Checkout"
+                      editMode={true}
+                      onSave={(next) => updateTheme({ content: { cartCheckoutCta: next } })}
+                    />
+                  ) : (
+                    theme.content.cartCheckoutCta || "Proceed to Checkout"
+                  )}
                 </button>
 
                 <button
                   onClick={clearCart}
                   className="w-full mt-3 bg-white border border-green-100 px-6 py-3 rounded-full font-semibold hover:border-green-300 transition"
                 >
-                  Clear Cart
+                  {editMode && canManageTheme ? (
+                    <EditableText
+                      value={theme.content.cartClearCta}
+                      fallback="Clear Cart"
+                      editMode={true}
+                      onSave={(next) => updateTheme({ content: { cartClearCta: next } })}
+                    />
+                  ) : (
+                    theme.content.cartClearCta || "Clear Cart"
+                  )}
                 </button>
               </div>
             </div>

@@ -8,6 +8,8 @@ import { motion } from "framer-motion"
 import { Check } from "lucide-react"
 import { API_BASE } from "../../../../config/env"
 import { normalizeRemoteUrl } from "../../../../utils/assetUrl"
+import { useTheme } from "../../../../context/ThemeContext"
+import EditableText from "../../../../components/theme/EditableText"
 
 interface Product {
   _id: string
@@ -21,6 +23,7 @@ interface Product {
 export default function ProductDetailPage() {
   const { slug } = useParams()
   const { addToCart } = useCart()
+  const { theme, editMode, canManageTheme, updateTheme } = useTheme()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [imageSrc, setImageSrc] = useState("/images/zaikest-logo.png")
@@ -120,7 +123,14 @@ export default function ProductDetailPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          <p className="text-sm uppercase tracking-[0.2em] text-green-700 mb-3">Zaikest special</p>
+          <EditableText
+            as="p"
+            className="text-sm uppercase tracking-[0.2em] text-green-700 mb-3"
+            value={theme.content.productSpecialLabel}
+            fallback="Zaikest special"
+            editMode={editMode && canManageTheme}
+            onSave={(next) => updateTheme({ content: { productSpecialLabel: next } })}
+          />
           <h1 className="text-4xl lg:text-5xl font-extrabold mb-4 text-green-950">
             {product.name}
           </h1>
@@ -130,20 +140,45 @@ export default function ProductDetailPage() {
           </p>
 
           <p className="text-[#5f6f61] leading-relaxed mb-8 max-w-lg">
-            {product.description || "Freshly prepared and ready to deliver."}
+            {product.description || (
+              <EditableText
+                value={theme.content.productFallbackDescription}
+                fallback="Freshly prepared and ready to deliver."
+                editMode={editMode && canManageTheme}
+                onSave={(next) => updateTheme({ content: { productFallbackDescription: next } })}
+                multiline
+              />
+            )}
           </p>
 
           <ul className="space-y-3 text-sm text-green-900 mb-10">
             {[
-              "Handmade with authentic spices",
-              "Delivered fresh and sealed",
-              "Ready in 20-30 minutes",
-            ].map((item) => (
+              theme.content.productFeatureOne || "Handmade with authentic spices",
+              theme.content.productFeatureTwo || "Delivered fresh and sealed",
+              theme.content.productFeatureThree || "Ready in 20-30 minutes",
+            ].map((item, index) => (
               <li key={item} className="flex items-center gap-2">
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-800">
                   <Check size={14} />
                 </span>
-                {item}
+                {editMode && canManageTheme ? (
+                  <EditableText
+                    value={item}
+                    fallback={item}
+                    editMode={true}
+                    onSave={(next) => {
+                      const key =
+                        index === 0
+                          ? "productFeatureOne"
+                          : index === 1
+                            ? "productFeatureTwo"
+                            : "productFeatureThree"
+                      updateTheme({ content: { [key]: next } as any })
+                    }}
+                  />
+                ) : (
+                  item
+                )}
               </li>
             ))}
           </ul>
@@ -162,7 +197,16 @@ export default function ProductDetailPage() {
               href="/products"
               className="text-green-700 hover:text-green-800 transition font-semibold"
             >
-              Back to products
+              {editMode && canManageTheme ? (
+                <EditableText
+                  value={theme.content.productBackToProductsText}
+                  fallback="Back to products"
+                  editMode={true}
+                  onSave={(next) => updateTheme({ content: { productBackToProductsText: next } })}
+                />
+              ) : (
+                theme.content.productBackToProductsText || "Back to products"
+              )}
             </Link>
           </div>
         </motion.div>

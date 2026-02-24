@@ -7,6 +7,8 @@ import { Download, PackageCheck, Phone } from "lucide-react";
 import { sanitizePhone, sanitizeText } from "../../../utils/sanitize";
 import { API_BASE } from "../../../config/env";
 import { resolvePublicUrl } from "../../../utils/url";
+import { useTheme } from "../../../context/ThemeContext";
+import EditableText from "../../../components/theme/EditableText";
 
 type OrderItem = {
   product?: string;
@@ -73,6 +75,7 @@ export default function OrdersPage() {
   const [error, setError] = useState("");
   const [phone, setPhone] = useState("");
   const [orderId, setOrderId] = useState("");
+  const { theme, editMode, canManageTheme, updateTheme } = useTheme();
 
   const fetchOrders = async (phoneValue: string, orderIdValue?: string) => {
     try {
@@ -277,9 +280,14 @@ export default function OrdersPage() {
 
       <div className="relative z-10 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-[0_6px_18px_rgba(0,0,0,0.45)]">
-            View Orders
-          </h1>
+          <EditableText
+            as="h1"
+            className="text-3xl sm:text-4xl font-extrabold text-white drop-shadow-[0_6px_18px_rgba(0,0,0,0.45)]"
+            value={theme.content.ordersTitle}
+            fallback="View Orders"
+            editMode={editMode && canManageTheme}
+            onSave={(next) => updateTheme({ content: { ordersTitle: next } })}
+          />
           <div className="flex items-center gap-3">
             <Link
               href="/"
@@ -297,9 +305,15 @@ export default function OrdersPage() {
         </div>
 
       <div className="bg-white/90 border border-green-100 rounded-2xl p-5 shadow-sm mb-8">
-        <p className="text-sm text-[#5f6f61] mb-3">
-          Enter your phone number to fetch your orders and status updates.
-        </p>
+        <EditableText
+          as="p"
+          className="text-sm text-[#5f6f61] mb-3"
+          value={theme.content.ordersHelperText}
+          fallback="Enter your phone number to fetch your orders and status updates."
+          editMode={editMode && canManageTheme}
+          onSave={(next) => updateTheme({ content: { ordersHelperText: next } })}
+          multiline
+        />
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-green-700" />
@@ -322,13 +336,29 @@ export default function OrdersPage() {
             onClick={() => fetchOrders(phone, orderId)}
             className="px-6 py-3 rounded-full bg-green-700 text-white font-semibold hover:bg-green-800 transition"
           >
-            View Orders
+            {editMode && canManageTheme ? (
+              <EditableText
+                value={theme.content.ordersButtonText}
+                fallback="View Orders"
+                editMode={true}
+                onSave={(next) => updateTheme({ content: { ordersButtonText: next } })}
+              />
+            ) : (
+              theme.content.ordersButtonText || "View Orders"
+            )}
           </button>
         </div>
       </div>
 
       {loading && (
-        <p className="text-center text-[#5f6f61] mt-10">Loading orders...</p>
+        <EditableText
+          as="p"
+          className="text-center text-[#5f6f61] mt-10"
+          value={theme.content.ordersLoadingText}
+          fallback="Loading orders..."
+          editMode={editMode && canManageTheme}
+          onSave={(next) => updateTheme({ content: { ordersLoadingText: next } })}
+        />
       )}
 
       {!loading && error && (
@@ -342,7 +372,13 @@ export default function OrdersPage() {
 
       {!loading && !error && formattedOrders.length === 0 && (
         <div className="text-center text-[#5f6f61] mt-10">
-          <p>No orders found yet.</p>
+          <EditableText
+            as="p"
+            value={theme.content.ordersEmptyText}
+            fallback="No orders found yet."
+            editMode={editMode && canManageTheme}
+            onSave={(next) => updateTheme({ content: { ordersEmptyText: next } })}
+          />
         </div>
       )}
 
@@ -416,7 +452,13 @@ export default function OrdersPage() {
 
         <div className="mt-10 flex items-center gap-3 text-sm text-white/80">
           <PackageCheck size={18} className="text-green-300" />
-          Orders will show status updates as they move from pending to shipped and delivered.
+          <EditableText
+            value={theme.content.ordersFooterHint}
+            fallback="Orders will show status updates as they move from pending to shipped and delivered."
+            editMode={editMode && canManageTheme}
+            onSave={(next) => updateTheme({ content: { ordersFooterHint: next } })}
+            multiline
+          />
         </div>
       </div>
     </main>

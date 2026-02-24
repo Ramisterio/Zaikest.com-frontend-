@@ -35,6 +35,38 @@ export type Theme = {
     newsletterSubtitle: string;
     newsletterButton: string;
     footerCopyright: string;
+    productsHeroTitle: string;
+    productsHeroSubtitle: string;
+    cartTitle: string;
+    cartEmptyTitle: string;
+    cartEmptySubtitle: string;
+    cartOrdersCta: string;
+    cartContinueCta: string;
+    cartSummaryTitle: string;
+    cartCheckoutCta: string;
+    cartClearCta: string;
+    ordersTitle: string;
+    ordersHelperText: string;
+    ordersButtonText: string;
+    ordersLoadingText: string;
+    ordersEmptyText: string;
+    ordersFooterHint: string;
+    checkoutTitle: string;
+    checkoutEmptyTitle: string;
+    checkoutEmptyCta: string;
+    checkoutDeliveryTitle: string;
+    checkoutOrderSummaryTitle: string;
+    checkoutPlaceOrderText: string;
+    checkoutConfirmedTitle: string;
+    checkoutConfirmedSubtitle: string;
+    checkoutContinueShoppingText: string;
+    checkoutDownloadSlipText: string;
+    productSpecialLabel: string;
+    productFallbackDescription: string;
+    productFeatureOne: string;
+    productFeatureTwo: string;
+    productFeatureThree: string;
+    productBackToProductsText: string;
   };
   heroStats: ThemeStat[];
   highlights: ThemeHighlight[];
@@ -83,6 +115,40 @@ const defaultTheme: Theme = {
     newsletterButton: "Subscribe",
     footerCopyright:
       "Copyright {year} Zaikest. All rights reserved. Developed by Naeem Rehman.",
+    productsHeroTitle: "Zaikest Grocery",
+    productsHeroSubtitle:
+      "Shop category wise for dishes, pastes, spices, snacks, and pantry staples.",
+    cartTitle: "Shopping Cart",
+    cartEmptyTitle: "Your cart is empty",
+    cartEmptySubtitle: "Looks like you have not added anything yet.",
+    cartOrdersCta: "My Orders",
+    cartContinueCta: "Continue shopping",
+    cartSummaryTitle: "Order Summary",
+    cartCheckoutCta: "Proceed to Checkout",
+    cartClearCta: "Clear Cart",
+    ordersTitle: "View Orders",
+    ordersHelperText: "Enter your phone number to fetch your orders and status updates.",
+    ordersButtonText: "View Orders",
+    ordersLoadingText: "Loading orders...",
+    ordersEmptyText: "No orders found yet.",
+    ordersFooterHint:
+      "Orders will show status updates as they move from pending to shipped and delivered.",
+    checkoutTitle: "Checkout",
+    checkoutEmptyTitle: "Your cart is empty",
+    checkoutEmptyCta: "Browse Products",
+    checkoutDeliveryTitle: "Delivery Details",
+    checkoutOrderSummaryTitle: "Order Summary",
+    checkoutPlaceOrderText: "Place Order",
+    checkoutConfirmedTitle: "Order Confirmed",
+    checkoutConfirmedSubtitle: "Thank you for shopping with Zaikest",
+    checkoutContinueShoppingText: "Continue Shopping",
+    checkoutDownloadSlipText: "Download Summary Slip",
+    productSpecialLabel: "Zaikest special",
+    productFallbackDescription: "Freshly prepared and ready to deliver.",
+    productFeatureOne: "Handmade with authentic spices",
+    productFeatureTwo: "Delivered fresh and sealed",
+    productFeatureThree: "Ready in 20-30 minutes",
+    productBackToProductsText: "Back to products",
   },
   heroStats: [
     { title: "20-30 min", text: "Avg delivery" },
