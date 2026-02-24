@@ -6,6 +6,7 @@ import { useAuth } from "./AuthContext";
 
 export type ThemeHighlight = { title: string; text: string };
 export type ThemeStat = { title: string; text: string };
+export type ThemePromoCard = { title: string; text: string; badge: string; enabled?: boolean };
 
 export type Theme = {
   colors: {
@@ -37,6 +38,7 @@ export type Theme = {
   };
   heroStats: ThemeStat[];
   highlights: ThemeHighlight[];
+  promoCards: ThemePromoCard[];
   company: {
     name: string;
     phone: string;
@@ -113,6 +115,32 @@ const defaultTheme: Theme = {
       text: "Every order reviewed for taste and standards.",
     },
   ],
+  promoCards: [
+    {
+      badge: "Limited",
+      title: "Weekend Feast Packs",
+      text: "Curated bundles with extra savings on family favorites.",
+      enabled: true,
+    },
+    {
+      badge: "Fast",
+      title: "Express Delivery",
+      text: "Get hot dishes to your door in 20-30 minutes.",
+      enabled: true,
+    },
+    {
+      badge: "New",
+      title: "Chef Specials",
+      text: "New seasonal recipes, crafted fresh every day.",
+      enabled: true,
+    },
+    {
+      badge: "Assured",
+      title: "Quality Checked",
+      text: "Every order is packed with care and verified.",
+      enabled: true,
+    },
+  ],
   company: {
     name: "",
     phone: "",
@@ -141,6 +169,7 @@ const mergeTheme = (prev: Theme, patch: ThemePatch): Theme => ({
   company: { ...prev.company, ...patch.company },
   heroStats: patch.heroStats ?? prev.heroStats,
   highlights: patch.highlights ?? prev.highlights,
+  promoCards: patch.promoCards ?? prev.promoCards,
 });
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {

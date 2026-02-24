@@ -329,9 +329,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="max-w-7xl mx-auto px-4 pb-8">
-          <PromoPosters />
-        </section>
+        {/* PromoPosters removed per request */}
 
         <section className="max-w-7xl mx-auto px-4 pb-8">
           <div className="flex items-center justify-between mb-5">
