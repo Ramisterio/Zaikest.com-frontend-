@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Tag } from "lucide-react"
 import ProductCard from "../../../components/ProductCard"
 import { useSearchParams } from "next/navigation"
-import PromoPosters from "../../../components/PromoPosters"
 import { getCategoryIcon } from "../../../utils/categoryIcon"
 import { API_BASE } from "../../../config/env"
 import { normalizeRemoteUrl, resolveAssetUrl } from "../../../utils/assetUrl"
@@ -175,9 +174,7 @@ export default function ProductsPage() {
         </div>
       </motion.div>
 
-      <div className="mb-10">
-        <PromoPosters />
-      </div>
+      {/* PromoPosters removed per request */}
 
       {loading ? (
         <p className="text-center text-[#5f6f61] mt-10">Loading products...</p>
