@@ -97,9 +97,12 @@ export default function AdminThemePage() {
     })();
   }, [mergeTheme]);
 
-  const updateSection = <K extends keyof Theme>(
-    section: K,
-    key: keyof Theme[K],
+  const updateSection = <
+    S extends "colors" | "content" | "company",
+    K extends keyof Theme[S]
+  >(
+    section: S,
+    key: K,
     value: string
   ) => {
     setTheme((prev) => ({
