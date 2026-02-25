@@ -735,44 +735,50 @@ export default function CheckoutContent({
             onSave={(next) => updateTheme({ content: { checkoutDeliveryTitle: next } })}
           />
 
-          <label className="text-sm font-medium text-green-900">
-            {theme.content.checkoutNameLabel || "Full name"}
-          </label>
-          <input
-            value={user.name}
-            onChange={(e) =>
-              setUser({ ...user, name: sanitizeText(e.target.value) })
-            }
-            className={inputClass}
-            disabled={isPlacingOrder}
-            required
-          />
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-green-900 block">
+              {theme.content.checkoutNameLabel || "Full name"}
+            </label>
+            <input
+              value={user.name}
+              onChange={(e) =>
+                setUser({ ...user, name: sanitizeText(e.target.value) })
+              }
+              className={inputClass}
+              disabled={isPlacingOrder}
+              required
+            />
+          </div>
 
-          <label className="text-sm font-medium text-green-900">
-            {theme.content.checkoutEmailLabel || "Email address"}
-          </label>
-          <input
-            value={user.email}
-            onChange={(e) =>
-              setUser({ ...user, email: sanitizeEmail(e.target.value) })
-            }
-            className={inputClass}
-            disabled={isPlacingOrder}
-            required
-          />
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-green-900 block">
+              {theme.content.checkoutEmailLabel || "Email address"}
+            </label>
+            <input
+              value={user.email}
+              onChange={(e) =>
+                setUser({ ...user, email: sanitizeEmail(e.target.value) })
+              }
+              className={inputClass}
+              disabled={isPlacingOrder}
+              required
+            />
+          </div>
 
-          <label className="text-sm font-medium text-green-900 flex items-center gap-2">
-            <Phone size={16} />
-            {theme.content.checkoutPhoneLabel || "Phone number"}
-          </label>
-          <input
-            placeholder={theme.content.checkoutPhonePlaceholder || "Enter phone number"}
-            value={user.phone}
-            onChange={(e) => setUser({ ...user, phone: sanitizePhone(e.target.value) })}
-            className={inputClassPlain}
-            disabled={isPlacingOrder}
-            required
-          />
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-green-900 flex items-center gap-2">
+              <Phone size={16} />
+              {theme.content.checkoutPhoneLabel || "Phone number"}
+            </label>
+            <input
+              placeholder={theme.content.checkoutPhonePlaceholder || "Enter phone number"}
+              value={user.phone}
+              onChange={(e) => setUser({ ...user, phone: sanitizePhone(e.target.value) })}
+              className={inputClassPlain}
+              disabled={isPlacingOrder}
+              required
+            />
+          </div>
 
           <div className="flex items-center justify-between gap-3">
             <label className="text-sm font-medium text-green-900 flex items-center gap-2">
@@ -790,14 +796,16 @@ export default function CheckoutContent({
                 : theme.content.checkoutUseCurrentLocationText || "Use current location"}
             </button>
           </div>
-          <textarea
-            placeholder={theme.content.checkoutAddressPlaceholder || "Enter delivery address"}
-            value={user.address}
-            onChange={(e) => setUser({ ...user, address: sanitizeAddress(e.target.value) })}
-            className={`${inputClassPlain} min-h-[110px] resize-none`}
-            disabled={isPlacingOrder}
-            required
-          />
+          <div className="space-y-1.5">
+            <textarea
+              placeholder={theme.content.checkoutAddressPlaceholder || "Enter delivery address"}
+              value={user.address}
+              onChange={(e) => setUser({ ...user, address: sanitizeAddress(e.target.value) })}
+              className={`${inputClassPlain} min-h-[110px] resize-none`}
+              disabled={isPlacingOrder}
+              required
+            />
+          </div>
         </div>
 
         <div className={cardClass}>

@@ -102,15 +102,15 @@ export default function Navbar() {
           effectiveCompact ? "max-h-0 opacity-0 overflow-hidden" : "max-h-24 sm:max-h-16 opacity-100"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-1 sm:gap-0 text-[11px] sm:text-xs font-semibold">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-2 text-[11px] sm:text-xs font-semibold">
           <EditableText
             value={theme?.content?.navbarDeliveryText || ""}
             fallback="Delivery in 20-30 min in select areas"
             editMode={editMode && canManageTheme}
             onSave={(next) => updateTheme({ content: { navbarDeliveryText: next } })}
-            className="inline-block leading-tight break-words max-w-full"
+            className="inline-block leading-tight break-words max-w-full flex-1 text-left pr-2"
           />
-          <span className="inline-flex items-center gap-1 leading-tight w-full sm:w-auto">
+          <span className="inline-flex items-center justify-end gap-1 leading-tight flex-1 text-right min-w-0">
             <Sparkles size={12} />
             <EditableText
               value={theme?.content?.navbarDealsText || ""}
