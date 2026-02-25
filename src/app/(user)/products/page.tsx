@@ -191,7 +191,9 @@ export default function ProductsPage() {
       {/* PromoPosters removed per request */}
 
       {loading ? (
-        <p className="text-center text-[#5f6f61] mt-10">Loading products...</p>
+        <p className="text-center text-[#5f6f61] mt-10">
+          {theme.content.productsLoadingText || "Loading products..."}
+        </p>
       ) : error ? (
         <p className="text-center text-green-600 mt-10">{error}</p>
       ) : selectedCategory === "All" ? (
@@ -215,7 +217,7 @@ export default function ProductsPage() {
                       onClick={() => setSelectedCategory(group.category)}
                       className="text-sm font-semibold text-green-700 hover:text-green-800"
                     >
-                      View all
+                      {theme.content.productsViewAllText || "View all"}
                     </button>
                   </div>
                   <motion.div
@@ -273,15 +275,15 @@ export default function ProductsPage() {
           {selectedCategory === "All" && filteredProducts.length === 0 && (
             <p className="text-center text-[#5f6f61] mt-10">
               {searchQuery
-                ? `No products found for "${searchQuery}".`
-                : "No products found."}
+                ? `${theme.content.productsNoResultsForText || "No products found for"} "${searchQuery}".`
+                : theme.content.productsNoResultsText || "No products found."}
             </p>
           )}
           {selectedCategory !== "All" && filteredProducts.length === 0 && (
             <p className="text-center text-[#5f6f61] mt-10">
               {searchQuery
-                ? `No products found for "${searchQuery}".`
-                : "No products found in this category."}
+                ? `${theme.content.productsNoResultsForText || "No products found for"} "${searchQuery}".`
+                : theme.content.productsNoCategoryResultsText || "No products found in this category."}
             </p>
           )}
         </>

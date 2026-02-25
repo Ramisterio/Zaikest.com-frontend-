@@ -427,7 +427,7 @@ export default function HomePage() {
                     href="/products"
                     className="whitespace-nowrap px-4 py-2 rounded-full bg-white/5 border border-white/25 text-white text-sm font-semibold hover:bg-white/15 transition"
                   >
-                    View all
+                    {theme.content.homeFeaturedViewAllText || "View all"}
                   </Link>
                   {categoryCards.map((cat) => (
                     <Link
@@ -481,7 +481,7 @@ export default function HomePage() {
                   ))
                 ) : (
                   <div className="w-full rounded-2xl border border-white/20 bg-white/10 p-6 text-center text-white/90">
-                    No products found.
+                    {theme.content.homeNoProductsText || "No products found."}
                   </div>
                 )}
               </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { sanitizeEmail, sanitizePassword } from "../utils/sanitize";
 import { apiPath } from "../config/env";
+import { useTheme } from "../context/ThemeContext";
 
 type LoginFormProps = {
   onRegisterClick?: () => void;
@@ -15,6 +16,7 @@ export default function LoginForm({
   onLoginSuccess,
 }: LoginFormProps) {
   const { refreshUser } = useAuth(); // refresh user context after login
+  const { theme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -93,7 +95,9 @@ export default function LoginForm({
       onSubmit={handleLogin}
       className="flex flex-col gap-4 p-6 bg-white rounded-2xl shadow-lg w-full max-w-sm"
     >
-      <h2 className="text-2xl font-bold text-center text-gray-900">Login</h2>
+      <h2 className="text-2xl font-bold text-center text-gray-900">
+        {theme.content.authLoginTitle || "Login"}
+      </h2>
 
       {/* Success / Error Message */}
       {message && (
@@ -108,7 +112,7 @@ export default function LoginForm({
 
       <input
         type="email"
-        placeholder="Email"
+        placeholder={theme.content.authLoginEmailPlaceholder || "Email"}
         value={email}
         onChange={(e) => setEmail(sanitizeEmail(e.target.value))}
         className="border border-gray-300 bg-white p-3 rounded-xl text-[#1a1a1a] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400"
@@ -118,7 +122,7 @@ export default function LoginForm({
       <div className="relative">
         <input
           type={showPassword ? "text" : "password"}
-          placeholder="Password"
+          placeholder={theme.content.authLoginPasswordPlaceholder || "Password"}
           value={password}
           onChange={(e) => setPassword(sanitizePassword(e.target.value))}
           className="border border-gray-300 bg-white p-3 pr-12 rounded-xl text-[#1a1a1a] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 w-full"
@@ -139,7 +143,9 @@ export default function LoginForm({
         disabled={loading}
         className="bg-black text-white py-3 rounded-xl font-semibold disabled:opacity-60"
       >
-        {loading ? "Logging in..." : "Login"}
+        {loading
+          ? theme.content.authLoginLoadingText || "Logging in..."
+          : theme.content.authLoginButtonText || "Login"}
       </button>
 
       {onRegisterClick && (
@@ -148,7 +154,7 @@ export default function LoginForm({
           onClick={onRegisterClick}
           className="bg-gray-200 py-3 rounded-xl mt-2"
         >
-          Register
+          {theme.content.authLoginRegisterButtonText || "Register"}
         </button>
       )}
     </form>

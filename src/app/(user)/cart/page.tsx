@@ -184,7 +184,7 @@ export default function CartPage() {
                       aria-label={`Remove ${item.name} from cart`}
                     >
                       <Trash2 size={18} />
-                      Remove
+                      {theme.content.cartRemoveText || "Remove"}
                     </button>
                   </div>
                 ))}
@@ -200,15 +200,15 @@ export default function CartPage() {
                   onSave={(next) => updateTheme({ content: { cartSummaryTitle: next } })}
                 />
                 <div className="flex justify-between text-sm text-[#5f6f61] mb-2">
-                  <span>Items</span>
+                  <span>{theme.content.cartItemsLabel || "Items"}</span>
                   <span>{cart.length}</span>
                 </div>
                 <div className="flex justify-between text-sm text-[#5f6f61] mb-4">
-                  <span>Delivery</span>
-                  <span>Free</span>
+                  <span>{theme.content.cartDeliveryLabel || "Delivery"}</span>
+                  <span>{theme.content.cartFreeText || "Free"}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg border-t border-green-100 pt-4 mb-6">
-                  <span>Total</span>
+                  <span>{theme.content.cartTotalLabel || "Total"}</span>
                   <span className="text-green-900">PKR {total.toFixed(2)}</span>
                 </div>
 

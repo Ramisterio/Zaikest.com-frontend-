@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import { Minus, Plus } from "lucide-react"
 import { useCart } from "../context/CartContext"
 import { normalizeRemoteUrl } from "../utils/assetUrl"
+import { useTheme } from "../context/ThemeContext"
 
 export type Product = {
   _id: string
@@ -29,12 +30,13 @@ export default function ProductCard({
   imageFit?: "cover" | "contain"
 }) {
   const { cart, addToCart, increaseQuantity, decreaseQuantity, removeFromCart } = useCart()
+  const { theme } = useTheme()
   const cartItem = cart.find((item) => item._id === product._id)
   const quantity = cartItem?.quantity ?? 0
   const categoryName =
     typeof product.category === "string"
       ? product.category
-      : product.category?.name || "Uncategorized"
+      : product.category?.name || theme.content.productCardUncategorizedText || "Uncategorized"
   const primaryImageSrc = normalizeRemoteUrl(product.imageUrl)
   const fallbackImageSrc = primaryImageSrc
   const [imageSrc, setImageSrc] = useState(primaryImageSrc)
@@ -132,7 +134,7 @@ export default function ProductCard({
             PKR {product.price}
           </p>
           <span className="text-[11px] sm:text-xs text-[#5f6f61] bg-green-50 px-2 py-1 rounded-full w-fit">
-            Ready to ship
+            {theme.content.productCardReadyToShipText || "Ready to ship"}
           </span>
         </div>
 
@@ -175,7 +177,7 @@ export default function ProductCard({
             }`}
             aria-label="Add to cart"
           >
-            Add to Cart
+            {theme.content.productCardAddToCartText || "Add to Cart"}
           </button>
         </div>
       </div>

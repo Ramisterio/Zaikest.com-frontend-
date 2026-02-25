@@ -281,16 +281,16 @@ export default function CheckoutContent({
       !user.phone.trim() ||
       !user.address.trim()
     ) {
-      setError("Please fill all required fields.");
+      setError(theme.content.checkoutRequiredFieldsError || "Please fill all required fields.");
       return;
     }
     if (!/karachi/i.test(user.address)) {
-      setError("Delivery address must be within Karachi");
+      setError(theme.content.checkoutKarachiOnlyError || "Delivery address must be within Karachi");
       return;
     }
 
     if (cart.length === 0) {
-      setError("Your cart is empty");
+      setError(theme.content.checkoutCartEmptyError || "Your cart is empty");
       return;
     }
 
@@ -356,10 +356,10 @@ export default function CheckoutContent({
 
       setOrderPlaced(true);
       setPlacedOrder(orderSnapshot);
-      setSuccess("Order placed successfully.");
+      setSuccess(theme.content.checkoutOrderPlacedSuccess || "Order placed successfully.");
       clearCart();
     } catch {
-      setError("Network error. Please try again.");
+      setError(theme.content.checkoutNetworkError || "Network error. Please try again.");
     } finally {
       setIsPlacingOrder(false);
     }
@@ -367,7 +367,7 @@ export default function CheckoutContent({
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setError("Location is not supported on this device.");
+      setError(theme.content.checkoutLocationUnsupportedError || "Location is not supported on this device.");
       return;
     }
     setError("");
@@ -483,10 +483,10 @@ export default function CheckoutContent({
           })();
           if (cachedAddress) {
             setUser((prev) => ({ ...prev, address: sanitizeAddress(cachedAddress) }));
-            setError("Using last known saved location for this area.");
+            setError(theme.content.checkoutLocationCachedNotice || "Using last known saved location for this area.");
           } else {
             setUser((prev) => ({ ...prev, address: exactPoint }));
-            setError("Exact address not found. Coordinates were added instead.");
+            setError(theme.content.checkoutLocationFallbackError || "Exact address not found. Coordinates were added instead.");
           }
         } finally {
           setIsLocating(false);
@@ -494,7 +494,10 @@ export default function CheckoutContent({
       },
       () => {
         setIsLocating(false);
-        setError("Unable to access location. Please allow location access.");
+        setError(
+          theme.content.checkoutLocationAccessError ||
+            "Unable to access location. Please allow location access."
+        );
       },
       {
         enableHighAccuracy: true,
@@ -595,10 +598,18 @@ export default function CheckoutContent({
           />
 
           <div className="text-left bg-green-50 rounded-2xl p-4 mb-5">
-            <p><strong>Name:</strong> {placedOrder?.user.name}</p>
-            <p><strong>Email:</strong> {placedOrder?.user.email}</p>
-            <p><strong>Phone:</strong> {placedOrder?.user.phone}</p>
-            <p><strong>Address:</strong> {placedOrder?.user.address}</p>
+            <p>
+              <strong>{theme.content.checkoutNameLabel || "Full name"}:</strong> {placedOrder?.user.name}
+            </p>
+            <p>
+              <strong>{theme.content.checkoutEmailLabel || "Email address"}:</strong> {placedOrder?.user.email}
+            </p>
+            <p>
+              <strong>{theme.content.checkoutPhoneLabel || "Phone number"}:</strong> {placedOrder?.user.phone}
+            </p>
+            <p>
+              <strong>{theme.content.checkoutAddressLabel || "Delivery address"}:</strong> {placedOrder?.user.address}
+            </p>
           </div>
 
           <div className="text-left space-y-2 mb-4">
@@ -612,17 +623,21 @@ export default function CheckoutContent({
 
           <div className="text-left text-sm text-[#5f6f61] border-t border-green-100 pt-3 mb-4">
             <div className="flex justify-between">
-              <span>Subtotal</span>
+              <span>{theme.content.checkoutSubtotalLabel || "Subtotal"}</span>
               <span>PKR {placedOrder?.subtotal ?? 0}</span>
             </div>
             <div className="flex justify-between">
-              <span>Delivery</span>
-              <span>{placedOrder?.deliveryFee ? `PKR ${placedOrder.deliveryFee}` : "Free"}</span>
+              <span>{theme.content.checkoutDeliveryLabel || "Delivery"}</span>
+              <span>
+                {placedOrder?.deliveryFee
+                  ? `PKR ${placedOrder.deliveryFee}`
+                  : theme.content.checkoutFreeText || "Free"}
+              </span>
             </div>
           </div>
 
           <div className="flex justify-between font-bold text-lg border-t border-green-100 pt-3 mb-6">
-            <span>Total</span>
+            <span>{theme.content.checkoutTotalLabel || "Total"}</span>
             <span>PKR {placedOrder?.total ?? 0}</span>
           </div>
 
@@ -682,7 +697,9 @@ export default function CheckoutContent({
             error ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
           }`}
         >
-          {error ? error : "Order placed successfully. Closing shortly..."}
+          {error
+            ? error
+            : `${theme.content.checkoutOrderPlacedSuccess || "Order placed successfully."} Closing shortly...`}
         </div>
       )}
       <EditableText
@@ -716,7 +733,9 @@ export default function CheckoutContent({
             onSave={(next) => updateTheme({ content: { checkoutDeliveryTitle: next } })}
           />
 
-          <label className="text-sm font-medium text-green-900">Full name</label>
+          <label className="text-sm font-medium text-green-900">
+            {theme.content.checkoutNameLabel || "Full name"}
+          </label>
           <input
             value={user.name}
             onChange={(e) =>
@@ -727,7 +746,9 @@ export default function CheckoutContent({
             required
           />
 
-          <label className="text-sm font-medium text-green-900">Email address</label>
+          <label className="text-sm font-medium text-green-900">
+            {theme.content.checkoutEmailLabel || "Email address"}
+          </label>
           <input
             value={user.email}
             onChange={(e) =>
@@ -740,10 +761,10 @@ export default function CheckoutContent({
 
           <label className="text-sm font-medium text-green-900 flex items-center gap-2">
             <Phone size={16} />
-            Phone number
+            {theme.content.checkoutPhoneLabel || "Phone number"}
           </label>
           <input
-            placeholder="Enter phone number"
+            placeholder={theme.content.checkoutPhonePlaceholder || "Enter phone number"}
             value={user.phone}
             onChange={(e) => setUser({ ...user, phone: sanitizePhone(e.target.value) })}
             className={inputClassPlain}
@@ -754,7 +775,7 @@ export default function CheckoutContent({
           <div className="flex items-center justify-between gap-3">
             <label className="text-sm font-medium text-green-900 flex items-center gap-2">
               <MapPin size={16} />
-              Delivery address
+              {theme.content.checkoutAddressLabel || "Delivery address"}
             </label>
             <button
               type="button"
@@ -762,11 +783,13 @@ export default function CheckoutContent({
               className="text-xs font-semibold text-green-700 hover:text-green-800 disabled:opacity-60 disabled:cursor-not-allowed"
               disabled={isLocating || isPlacingOrder}
             >
-              {isLocating ? "Getting location..." : "Use current location"}
+              {isLocating
+                ? theme.content.checkoutGettingLocationText || "Getting location..."
+                : theme.content.checkoutUseCurrentLocationText || "Use current location"}
             </button>
           </div>
           <textarea
-            placeholder="Enter delivery address"
+            placeholder={theme.content.checkoutAddressPlaceholder || "Enter delivery address"}
             value={user.address}
             onChange={(e) => setUser({ ...user, address: sanitizeAddress(e.target.value) })}
             className={`${inputClassPlain} min-h-[110px] resize-none`}
@@ -793,17 +816,17 @@ export default function CheckoutContent({
           ))}
 
           <div className="flex justify-between text-sm text-[#5f6f61] mt-4">
-            <span>Subtotal</span>
+            <span>{theme.content.checkoutSubtotalLabel || "Subtotal"}</span>
             <span>PKR {subtotal}</span>
           </div>
 
           <div className="flex justify-between text-sm text-[#5f6f61] mt-2">
-            <span>Delivery</span>
-            <span>{deliveryFee ? `PKR ${deliveryFee}` : "Free"}</span>
+            <span>{theme.content.checkoutDeliveryLabel || "Delivery"}</span>
+            <span>{deliveryFee ? `PKR ${deliveryFee}` : theme.content.checkoutFreeText || "Free"}</span>
           </div>
 
           <div className="flex justify-between font-bold text-lg border-t border-green-100 pt-3 mt-4">
-            <span>Total</span>
+            <span>{theme.content.checkoutTotalLabel || "Total"}</span>
             <span>PKR {totalPrice}</span>
           </div>
 
@@ -816,7 +839,7 @@ export default function CheckoutContent({
             {isPlacingOrder ? (
               <>
                 <span className="h-4 w-4 rounded-full border-2 border-white/60 border-t-white animate-spin" />
-                Placing...
+                {theme.content.checkoutPlacingText || "Placing..."}
               </>
             ) : (
               (editMode && canManageTheme ? (

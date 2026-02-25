@@ -77,17 +77,28 @@ export default function AdminThemePage() {
     setTimeout(() => setMessage(null), 4000);
   };
 
+  const extractThemePayload = (json: any) => {
+    const serverTheme = json?.theme ?? json?.data?.theme;
+    const nextVersion = json?.version ?? json?.data?.version ?? serverTheme?.version ?? null;
+    return { serverTheme, nextVersion };
+  };
+
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(apiPath("/v1/theme"), { credentials: "include" });
+        const res = await fetch(apiPath("/v1/theme"), {
+          credentials: "include",
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        });
         const json = await res.json();
-        const serverTheme = json?.theme ?? json?.data?.theme;
-        const nextVersion = json?.version ?? json?.data?.version ?? serverTheme?.version ?? null;
+        const { serverTheme, nextVersion } = extractThemePayload(json);
         if (!res.ok || !serverTheme) throw new Error(json?.message || "Failed to load theme");
-        const merged = mergeTheme(defaultTheme, serverTheme);
-        setTheme(merged);
-        setOriginalTheme(merged);
+        setTheme(serverTheme as Theme);
+        setOriginalTheme(serverTheme as Theme);
         setVersion(nextVersion);
       } catch (e: any) {
         showMsg(e.message || "Failed to load theme");
@@ -183,34 +194,40 @@ export default function AdminThemePage() {
       const res = await fetch(apiPath("/v1/admin/theme"), {
         method: "PUT",
         credentials: "include",
+        cache: "no-store",
         headers: {
           "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
           ...(version ? { "If-Match": String(version) } : {}),
         },
         body: JSON.stringify(patch),
       });
       const json = await res.json();
       if (res.status === 409) {
-        const latestRes = await fetch(apiPath("/v1/theme"), { credentials: "include" });
+        const latestRes = await fetch(apiPath("/v1/theme"), {
+          credentials: "include",
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        });
         const latestJson = await latestRes.json();
-        const latestTheme = latestJson?.theme ?? latestJson?.data?.theme;
-        const latestVersion =
-          latestJson?.version ?? latestJson?.data?.version ?? latestTheme?.version ?? null;
+        const { serverTheme: latestTheme, nextVersion: latestVersion } =
+          extractThemePayload(latestJson);
         if (latestRes.ok && latestTheme) {
-          const mergedLatest = mergeTheme(defaultTheme, latestTheme);
-          setTheme(mergedLatest);
-          setOriginalTheme(mergedLatest);
+          setTheme(latestTheme as Theme);
+          setOriginalTheme(latestTheme as Theme);
           setVersion(latestVersion);
         }
         showMsg("Theme changed, reloaded latest.", "error");
         return;
       }
-      const serverTheme = json?.theme ?? json?.data?.theme;
-      const nextVersion = json?.version ?? json?.data?.version ?? serverTheme?.version ?? null;
+      const { serverTheme, nextVersion } = extractThemePayload(json);
       if (!res.ok || !serverTheme) throw new Error(json?.message || "Failed to update theme");
-      const merged = mergeTheme(defaultTheme, serverTheme);
-      setTheme(merged);
-      setOriginalTheme(merged);
+      setTheme(serverTheme as Theme);
+      setOriginalTheme(serverTheme as Theme);
       setVersion(nextVersion);
       showMsg("Theme updated", "success");
     } catch (e: any) {
@@ -426,6 +443,66 @@ export default function AdminThemePage() {
               }
             />
           </label>
+          <label className="text-sm">
+            Footer contact title
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.footerContactTitle}
+              onChange={(e) =>
+                updateSection("content", "footerContactTitle", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Footer email label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.footerEmailLabel}
+              onChange={(e) =>
+                updateSection("content", "footerEmailLabel", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Footer phone label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.footerPhoneLabel}
+              onChange={(e) =>
+                updateSection("content", "footerPhoneLabel", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Footer head office label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.footerHeadOfficeLabel}
+              onChange={(e) =>
+                updateSection("content", "footerHeadOfficeLabel", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Footer support label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.footerSupportLabel}
+              onChange={(e) =>
+                updateSection("content", "footerSupportLabel", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Footer follow us title
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.footerFollowUsTitle}
+              onChange={(e) =>
+                updateSection("content", "footerFollowUsTitle", sanitizeText(e.target.value))
+              }
+            />
+          </label>
           <label className="text-sm sm:col-span-2">
             Footer text
             <input
@@ -443,6 +520,56 @@ export default function AdminThemePage() {
               value={theme.content.footerBlurb}
               onChange={(e) =>
                 updateSection("content", "footerBlurb", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Footer quick links title
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.footerQuickLinksTitle}
+              onChange={(e) =>
+                updateSection("content", "footerQuickLinksTitle", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Footer quick link: Shop all
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.footerQuickLinkShopAll}
+              onChange={(e) =>
+                updateSection("content", "footerQuickLinkShopAll", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Footer quick link: Dishes
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.footerQuickLinkDishes}
+              onChange={(e) =>
+                updateSection("content", "footerQuickLinkDishes", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Footer quick link: Pastes
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.footerQuickLinkPastes}
+              onChange={(e) =>
+                updateSection("content", "footerQuickLinkPastes", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Footer quick link: Spices
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.footerQuickLinkSpices}
+              onChange={(e) =>
+                updateSection("content", "footerQuickLinkSpices", sanitizeText(e.target.value))
               }
             />
           </label>
@@ -485,6 +612,174 @@ export default function AdminThemePage() {
                 updateSection("content", "footerCopyright", sanitizeText(e.target.value))
               }
               placeholder="Use {year} for current year"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="bg-white border rounded p-4 shadow space-y-4">
+        <h2 className="text-lg font-semibold">Navbar</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="text-sm">
+            Delivery Text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarDeliveryText}
+              onChange={(e) =>
+                updateSection("content", "navbarDeliveryText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Deals Text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarDealsText}
+              onChange={(e) =>
+                updateSection("content", "navbarDealsText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Home text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarHomeText}
+              onChange={(e) =>
+                updateSection("content", "navbarHomeText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Deliver to label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarDeliverToText}
+              onChange={(e) =>
+                updateSection("content", "navbarDeliverToText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Deliver to location
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarDeliverToLocation}
+              onChange={(e) =>
+                updateSection("content", "navbarDeliverToLocation", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Search placeholder
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarSearchPlaceholder}
+              onChange={(e) =>
+                updateSection("content", "navbarSearchPlaceholder", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Mobile search placeholder
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarMobileSearchPlaceholder}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "navbarMobileSearchPlaceholder",
+                  sanitizeText(e.target.value)
+                )
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Profile text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarProfileText}
+              onChange={(e) =>
+                updateSection("content", "navbarProfileText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Admin dashboard text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarAdminDashboardText}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "navbarAdminDashboardText",
+                  sanitizeText(e.target.value)
+                )
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Edit theme text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarEditThemeText}
+              onChange={(e) =>
+                updateSection("content", "navbarEditThemeText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Live edit label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarLiveEditText}
+              onChange={(e) =>
+                updateSection("content", "navbarLiveEditText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Login text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarLoginText}
+              onChange={(e) =>
+                updateSection("content", "navbarLoginText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Cart text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarCartText}
+              onChange={(e) =>
+                updateSection("content", "navbarCartText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            View all text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarViewAllText}
+              onChange={(e) =>
+                updateSection("content", "navbarViewAllText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Loading categories text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarLoadingCategoriesText}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "navbarLoadingCategoriesText",
+                  sanitizeText(e.target.value)
+                )
+              }
             />
           </label>
         </div>
@@ -849,6 +1144,694 @@ export default function AdminThemePage() {
                   sanitizeText(e.target.value)
                 )
               }
+            />
+          </label>
+          <label className="text-sm">
+            Product card add-to-cart text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.productCardAddToCartText}
+              onChange={(e) =>
+                updateSection("content", "productCardAddToCartText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Product card ready text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.productCardReadyToShipText}
+              onChange={(e) =>
+                updateSection("content", "productCardReadyToShipText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Product card uncategorized text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.productCardUncategorizedText}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "productCardUncategorizedText",
+                  sanitizeText(e.target.value)
+                )
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Product detail loading text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.productDetailLoadingText}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "productDetailLoadingText",
+                  sanitizeText(e.target.value)
+                )
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Product detail not-found text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.productDetailNotFoundText}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "productDetailNotFoundText",
+                  sanitizeText(e.target.value)
+                )
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Product detail add-to-cart text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.productDetailAddToCartText}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "productDetailAddToCartText",
+                  sanitizeText(e.target.value)
+                )
+              }
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="bg-white border rounded p-4 shadow space-y-4">
+        <h2 className="text-lg font-semibold">Auth Content</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="text-sm">
+            Login title
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authLoginTitle}
+              onChange={(e) => updateSection("content", "authLoginTitle", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Login email placeholder
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authLoginEmailPlaceholder}
+              onChange={(e) =>
+                updateSection("content", "authLoginEmailPlaceholder", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Login password placeholder
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authLoginPasswordPlaceholder}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "authLoginPasswordPlaceholder",
+                  sanitizeText(e.target.value)
+                )
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Login button text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authLoginButtonText}
+              onChange={(e) => updateSection("content", "authLoginButtonText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Login loading text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authLoginLoadingText}
+              onChange={(e) => updateSection("content", "authLoginLoadingText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Login secondary button text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authLoginRegisterButtonText}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "authLoginRegisterButtonText",
+                  sanitizeText(e.target.value)
+                )
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Register title
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authRegisterTitle}
+              onChange={(e) => updateSection("content", "authRegisterTitle", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Register name placeholder
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authRegisterNamePlaceholder}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "authRegisterNamePlaceholder",
+                  sanitizeText(e.target.value)
+                )
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Register email placeholder
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authRegisterEmailPlaceholder}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "authRegisterEmailPlaceholder",
+                  sanitizeText(e.target.value)
+                )
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Register password placeholder
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authRegisterPasswordPlaceholder}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "authRegisterPasswordPlaceholder",
+                  sanitizeText(e.target.value)
+                )
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Register phone placeholder
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authRegisterPhonePlaceholder}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "authRegisterPhonePlaceholder",
+                  sanitizeText(e.target.value)
+                )
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Register button text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authRegisterButtonText}
+              onChange={(e) =>
+                updateSection("content", "authRegisterButtonText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Register loading text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authRegisterLoadingText}
+              onChange={(e) =>
+                updateSection("content", "authRegisterLoadingText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Register secondary button text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.authRegisterLoginButtonText}
+              onChange={(e) =>
+                updateSection(
+                  "content",
+                  "authRegisterLoginButtonText",
+                  sanitizeText(e.target.value)
+                )
+              }
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="bg-white border rounded p-4 shadow space-y-4">
+        <h2 className="text-lg font-semibold">Extended Storefront Text</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="text-sm">
+            Navbar live edit ON text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarLiveEditOnText}
+              onChange={(e) => updateSection("content", "navbarLiveEditOnText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Navbar live edit OFF text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarLiveEditOffText}
+              onChange={(e) => updateSection("content", "navbarLiveEditOffText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Navbar logout text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.navbarLogoutText}
+              onChange={(e) => updateSection("content", "navbarLogoutText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Home featured view-all text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.homeFeaturedViewAllText}
+              onChange={(e) => updateSection("content", "homeFeaturedViewAllText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Home no-products text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.homeNoProductsText}
+              onChange={(e) => updateSection("content", "homeNoProductsText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Products loading text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.productsLoadingText}
+              onChange={(e) => updateSection("content", "productsLoadingText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Products view-all text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.productsViewAllText}
+              onChange={(e) => updateSection("content", "productsViewAllText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Products no-results text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.productsNoResultsText}
+              onChange={(e) => updateSection("content", "productsNoResultsText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Products no-results-for prefix
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.productsNoResultsForText}
+              onChange={(e) => updateSection("content", "productsNoResultsForText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Products no-category-results text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.productsNoCategoryResultsText}
+              onChange={(e) => updateSection("content", "productsNoCategoryResultsText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Cart remove text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.cartRemoveText}
+              onChange={(e) => updateSection("content", "cartRemoveText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Cart items label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.cartItemsLabel}
+              onChange={(e) => updateSection("content", "cartItemsLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Cart delivery label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.cartDeliveryLabel}
+              onChange={(e) => updateSection("content", "cartDeliveryLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Cart free text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.cartFreeText}
+              onChange={(e) => updateSection("content", "cartFreeText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Cart total label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.cartTotalLabel}
+              onChange={(e) => updateSection("content", "cartTotalLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout name label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutNameLabel}
+              onChange={(e) => updateSection("content", "checkoutNameLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout email label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutEmailLabel}
+              onChange={(e) => updateSection("content", "checkoutEmailLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout phone label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutPhoneLabel}
+              onChange={(e) => updateSection("content", "checkoutPhoneLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout phone placeholder
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutPhonePlaceholder}
+              onChange={(e) => updateSection("content", "checkoutPhonePlaceholder", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout address label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutAddressLabel}
+              onChange={(e) => updateSection("content", "checkoutAddressLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout address placeholder
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutAddressPlaceholder}
+              onChange={(e) => updateSection("content", "checkoutAddressPlaceholder", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout use-current-location text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutUseCurrentLocationText}
+              onChange={(e) => updateSection("content", "checkoutUseCurrentLocationText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout getting-location text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutGettingLocationText}
+              onChange={(e) => updateSection("content", "checkoutGettingLocationText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout placing text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutPlacingText}
+              onChange={(e) => updateSection("content", "checkoutPlacingText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout subtotal label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutSubtotalLabel}
+              onChange={(e) => updateSection("content", "checkoutSubtotalLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout delivery label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutDeliveryLabel}
+              onChange={(e) => updateSection("content", "checkoutDeliveryLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout total label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutTotalLabel}
+              onChange={(e) => updateSection("content", "checkoutTotalLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout free text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutFreeText}
+              onChange={(e) => updateSection("content", "checkoutFreeText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout required-fields error
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutRequiredFieldsError}
+              onChange={(e) => updateSection("content", "checkoutRequiredFieldsError", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout Karachi-only error
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutKarachiOnlyError}
+              onChange={(e) => updateSection("content", "checkoutKarachiOnlyError", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout empty-cart error
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutCartEmptyError}
+              onChange={(e) => updateSection("content", "checkoutCartEmptyError", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout success text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutOrderPlacedSuccess}
+              onChange={(e) => updateSection("content", "checkoutOrderPlacedSuccess", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout network error
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutNetworkError}
+              onChange={(e) => updateSection("content", "checkoutNetworkError", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout location-unsupported error
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutLocationUnsupportedError}
+              onChange={(e) => updateSection("content", "checkoutLocationUnsupportedError", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout location-access error
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutLocationAccessError}
+              onChange={(e) => updateSection("content", "checkoutLocationAccessError", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout location fallback error
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutLocationFallbackError}
+              onChange={(e) => updateSection("content", "checkoutLocationFallbackError", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Checkout location cached notice
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.checkoutLocationCachedNotice}
+              onChange={(e) => updateSection("content", "checkoutLocationCachedNotice", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders phone-required error
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersPhoneRequiredError}
+              onChange={(e) => updateSection("content", "ordersPhoneRequiredError", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders load-failed error
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersLoadFailedError}
+              onChange={(e) => updateSection("content", "ordersLoadFailedError", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders network error
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersNetworkError}
+              onChange={(e) => updateSection("content", "ordersNetworkError", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders home link text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersHomeLinkText}
+              onChange={(e) => updateSection("content", "ordersHomeLinkText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders continue-shopping text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersContinueShoppingText}
+              onChange={(e) => updateSection("content", "ordersContinueShoppingText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders phone placeholder
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersPhonePlaceholder}
+              onChange={(e) => updateSection("content", "ordersPhonePlaceholder", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders order-id placeholder
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersOrderIdPlaceholder}
+              onChange={(e) => updateSection("content", "ordersOrderIdPlaceholder", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders go-back-home text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersGoBackHomeText}
+              onChange={(e) => updateSection("content", "ordersGoBackHomeText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders order label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersOrderLabel}
+              onChange={(e) => updateSection("content", "ordersOrderLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders recent text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersRecentText}
+              onChange={(e) => updateSection("content", "ordersRecentText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders pending text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersPendingText}
+              onChange={(e) => updateSection("content", "ordersPendingText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders buyer label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersBuyerLabel}
+              onChange={(e) => updateSection("content", "ordersBuyerLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders customer fallback text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersCustomerFallbackText}
+              onChange={(e) => updateSection("content", "ordersCustomerFallbackText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders phone label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersPhoneLabel}
+              onChange={(e) => updateSection("content", "ordersPhoneLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders item fallback text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersItemFallbackText}
+              onChange={(e) => updateSection("content", "ordersItemFallbackText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders total label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersTotalLabel}
+              onChange={(e) => updateSection("content", "ordersTotalLabel", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders download-receipt text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersDownloadReceiptText}
+              onChange={(e) => updateSection("content", "ordersDownloadReceiptText", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm">
+            Orders download-slip text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.ordersDownloadSlipText}
+              onChange={(e) => updateSection("content", "ordersDownloadSlipText", sanitizeText(e.target.value))}
             />
           </label>
         </div>

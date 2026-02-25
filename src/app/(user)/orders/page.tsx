@@ -83,7 +83,7 @@ export default function OrdersPage() {
       setError("");
       setOrders([]);
       if (!phoneValue.trim()) {
-        setError("Please enter your phone number to view orders.");
+        setError(theme.content.ordersPhoneRequiredError || "Please enter your phone number to view orders.");
         return;
       }
       const params = new URLSearchParams({ phone: phoneValue.trim() });
@@ -93,13 +93,13 @@ export default function OrdersPage() {
       });
       if (!res.ok) {
         const json = await res.json().catch(() => null);
-        setError(json?.message || "Failed to load orders. Please try again.");
+        setError(json?.message || theme.content.ordersLoadFailedError || "Failed to load orders. Please try again.");
         return;
       }
       const json = await res.json();
       setOrders(json?.data || json?.orders || []);
     } catch {
-      setError("Network error. Please try again.");
+      setError(theme.content.ordersNetworkError || "Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -248,11 +248,11 @@ export default function OrdersPage() {
         ...order,
         createdAtLabel: order.createdAt
           ? new Date(order.createdAt).toLocaleString()
-          : "Recent",
+          : theme.content.ordersRecentText || "Recent",
         statusLabel:
           order.orderStatus ||
           order.status ||
-          "Pending",
+          theme.content.ordersPendingText || "Pending",
         totalLabel:
           order.total ??
           order.subtotal ??
@@ -293,13 +293,13 @@ export default function OrdersPage() {
               href="/"
               className="inline-flex items-center gap-2 text-white/90 font-semibold hover:text-white drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
             >
-              Home
+              {theme.content.ordersHomeLinkText || "Home"}
             </Link>
             <Link
               href="/products"
               className="inline-flex items-center gap-2 text-white/90 font-semibold hover:text-white drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
             >
-              Continue shopping
+              {theme.content.ordersContinueShoppingText || "Continue shopping"}
             </Link>
           </div>
         </div>
@@ -320,7 +320,7 @@ export default function OrdersPage() {
             <input
               value={phone}
               onChange={(e) => setPhone(sanitizePhone(e.target.value))}
-              placeholder="03xx-xxxxxxx"
+              placeholder={theme.content.ordersPhonePlaceholder || "03xx-xxxxxxx"}
               className="w-full pl-10 pr-4 py-3 rounded-full border border-green-100 focus:outline-none focus:ring-2 focus:ring-green-200"
             />
           </div>
@@ -328,7 +328,7 @@ export default function OrdersPage() {
             <input
               value={orderId}
               onChange={(e) => setOrderId(sanitizeText(e.target.value))}
-              placeholder="Order ID (optional)"
+              placeholder={theme.content.ordersOrderIdPlaceholder || "Order ID (optional)"}
               className="w-full px-4 py-3 rounded-full border border-green-100 focus:outline-none focus:ring-2 focus:ring-green-200"
             />
           </div>
@@ -365,7 +365,7 @@ export default function OrdersPage() {
         <div className="text-center text-red-700 mt-8">
           <p className="mb-4 text-lg font-semibold">{error}</p>
           <Link href="/" className="text-red-800 font-semibold">
-            Go back home
+            {theme.content.ordersGoBackHomeText || "Go back home"}
           </Link>
         </div>
       )}
@@ -393,7 +393,7 @@ export default function OrdersPage() {
             >
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs text-[#5f6f61]">Order</p>
+                  <p className="text-xs text-[#5f6f61]">{theme.content.ordersOrderLabel || "Order"}</p>
                   <p className="text-base font-semibold text-green-950">
                     #{order._id?.slice(-6) || "Zaikest"}
                   </p>
@@ -409,14 +409,22 @@ export default function OrdersPage() {
               </div>
 
               <div className="mt-2 text-xs text-[#5f6f61]">
-                <div>Buyer: {order.customer?.name || "Customer"}</div>
-                <div>Phone: {order.customer?.phone || "--"}</div>
+                <div>
+                  {theme.content.ordersBuyerLabel || "Buyer"}:{" "}
+                  {order.customer?.name || theme.content.ordersCustomerFallbackText || "Customer"}
+                </div>
+                <div>
+                  {theme.content.ordersPhoneLabel || "Phone"}: {order.customer?.phone || "--"}
+                </div>
               </div>
 
               <div className="mt-3 space-y-1 text-xs text-green-900">
                 {(order.items || []).map((item, idx) => (
                   <div key={`${order._id}-${idx}`} className="flex justify-between">
-                    <span>{item.name || "Item"} x {item.quantity ?? 1}</span>
+                    <span>
+                      {item.name || theme.content.ordersItemFallbackText || "Item"} x{" "}
+                      {item.quantity ?? 1}
+                    </span>
                     <span>PKR {(item.price || 0) * (item.quantity || 1)}</span>
                   </div>
                 ))}
@@ -424,7 +432,7 @@ export default function OrdersPage() {
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-4 border-t border-green-100 pt-3">
                 <div className="text-sm font-semibold text-green-950">
-                  Total: PKR {order.totalLabel ?? 0}
+                  {theme.content.ordersTotalLabel || "Total"}: PKR {order.totalLabel ?? 0}
                 </div>
                 {getDownloadUrl(order) && (
                   <button
@@ -432,7 +440,7 @@ export default function OrdersPage() {
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-700 text-white text-xs font-bold hover:bg-green-800 transition"
                   >
                     <Download size={16} />
-                    Download receipt
+                    {theme.content.ordersDownloadReceiptText || "Download receipt"}
                   </button>
                 )}
                 {(getDownloadHtml(order) || order.receipt) && (
@@ -441,7 +449,7 @@ export default function OrdersPage() {
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-700 text-white text-xs font-bold hover:bg-green-800 transition"
                   >
                     <Download size={16} />
-                    Download slip
+                    {theme.content.ordersDownloadSlipText || "Download slip"}
                   </button>
                 )}
               </div>

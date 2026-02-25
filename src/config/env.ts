@@ -1,38 +1,42 @@
-const rawApiOrigin = process.env.NEXT_PUBLIC_API_URL;
-
-if (!rawApiOrigin) {
-  throw new Error(
-    "Missing NEXT_PUBLIC_API_URL. Set it in your environment before running the app."
-  );
-}
-
+const rawApiOrigin = process.env.NEXT_PUBLIC_API_URL ?? "";
 const normalizedInput = rawApiOrigin.trim().replace(/\/+$/, "");
+const isAbsoluteUrl = /^https?:\/\//i.test(normalizedInput);
+const hasApiSuffix = /\/api$/i.test(normalizedInput);
 
-if (!/^https?:\/\//i.test(normalizedInput)) {
-  throw new Error(
-    "Invalid NEXT_PUBLIC_API_URL. It must start with http:// or https://."
+if (!normalizedInput) {
+  console.warn(
+    "NEXT_PUBLIC_API_URL is not set. Falling back to relative /api. Set NEXT_PUBLIC_API_URL in production."
   );
-}
-
-if (
+} else if (!isAbsoluteUrl) {
+  console.warn(
+    "NEXT_PUBLIC_API_URL should start with http:// or https://. Falling back to relative /api."
+  );
+} else if (
   process.env.NODE_ENV === "production" &&
   /localhost|127\.0\.0\.1/i.test(normalizedInput)
 ) {
-  throw new Error(
-    "Unsafe NEXT_PUBLIC_API_URL for production. Use a real public API host."
+  console.warn(
+    "NEXT_PUBLIC_API_URL points to localhost in production. Use a public API host on VPS."
   );
 }
 
-const hasApiSuffix = /\/api$/i.test(normalizedInput);
-
 // Supports either:
-// 1) NEXT_PUBLIC_API_URL=http://localhost:5000
-// 2) NEXT_PUBLIC_API_URL=http://localhost:5000/api
-export const ASSET_BASE = hasApiSuffix
-  ? normalizedInput.replace(/\/api$/i, "")
-  : normalizedInput;
+// 1) NEXT_PUBLIC_API_URL=https://api.example.com
+// 2) NEXT_PUBLIC_API_URL=https://api.example.com/api
+// Fallback when unset/invalid: relative /api
+export const ASSET_BASE =
+  isAbsoluteUrl && hasApiSuffix
+    ? normalizedInput.replace(/\/api$/i, "")
+    : isAbsoluteUrl
+      ? normalizedInput
+      : "";
 
-export const API_BASE = hasApiSuffix ? normalizedInput : `${normalizedInput}/api`;
+export const API_BASE =
+  isAbsoluteUrl
+    ? hasApiSuffix
+      ? normalizedInput
+      : `${normalizedInput}/api`
+    : "/api";
 
 export const apiPath = (path: string) => {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;

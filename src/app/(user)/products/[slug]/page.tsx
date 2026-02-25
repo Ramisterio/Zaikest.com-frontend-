@@ -64,16 +64,20 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="py-24 text-center text-[#5f6f61]">Loading product...</div>
+      <div className="py-24 text-center text-[#5f6f61]">
+        {theme.content.productDetailLoadingText || "Loading product..."}
+      </div>
     )
   }
 
   if (!product) {
     return (
       <div className="py-24 text-center">
-        <h1 className="text-4xl font-bold mb-4">Product not found</h1>
+        <h1 className="text-4xl font-bold mb-4">
+          {theme.content.productDetailNotFoundText || "Product not found"}
+        </h1>
         <Link href="/products" className="text-green-700 hover:text-green-800 transition">
-          Back to products
+          {theme.content.productBackToProductsText || "Back to products"}
         </Link>
       </div>
     )
@@ -190,7 +194,7 @@ export default function ProductDetailPage() {
               onClick={() => addToCart(product)}
               className="bg-green-700 text-white px-10 py-4 rounded-full font-semibold shadow-lg hover:bg-green-800 transition-all"
             >
-              Add to Cart
+              {theme.content.productDetailAddToCartText || "Add to Cart"}
             </motion.button>
 
             <Link

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { sanitizeEmail, sanitizePassword, sanitizePhone, sanitizeText } from "../utils/sanitize";
 import { apiPath } from "../config/env";
+import { useTheme } from "../context/ThemeContext";
 
 type RegisterFormProps = {
   onLoginClick?: () => void;
@@ -13,6 +14,7 @@ export default function RegisterForm({
   onLoginClick,
   onRegisterSuccess,
 }: RegisterFormProps) {
+  const { theme } = useTheme();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -82,7 +84,7 @@ export default function RegisterForm({
       className="flex flex-col gap-4 p-6 bg-white rounded-2xl shadow-lg w-full max-w-sm"
     >
       <h2 className="text-2xl font-bold text-center text-gray-900">
-        Register
+        {theme.content.authRegisterTitle || "Register"}
       </h2>
 
       {message && (
@@ -100,7 +102,7 @@ export default function RegisterForm({
       <input
         value={fullName}
         onChange={(e) => setFullName(sanitizeText(e.target.value))}
-        placeholder="Full Name"
+        placeholder={theme.content.authRegisterNamePlaceholder || "Full Name"}
         className="border border-gray-300 bg-white p-3 rounded-xl text-[#1a1a1a] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400"
         required
       />
@@ -108,7 +110,7 @@ export default function RegisterForm({
       <input
         value={email}
         onChange={(e) => setEmail(sanitizeEmail(e.target.value))}
-        placeholder="Email"
+        placeholder={theme.content.authRegisterEmailPlaceholder || "Email"}
         type="email"
         className="border border-gray-300 bg-white p-3 rounded-xl text-[#1a1a1a] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400"
         required
@@ -119,7 +121,7 @@ export default function RegisterForm({
           type={showPassword ? "text" : "password"}
           value={password}
           onChange={(e) => setPassword(sanitizePassword(e.target.value))}
-          placeholder="Password"
+          placeholder={theme.content.authRegisterPasswordPlaceholder || "Password"}
           className="border border-gray-300 bg-white p-3 pr-12 rounded-xl text-[#1a1a1a] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 w-full"
           required
         />
@@ -136,7 +138,7 @@ export default function RegisterForm({
       <input
         value={phone}
         onChange={(e) => setPhone(sanitizePhone(e.target.value))}
-        placeholder="Phone"
+        placeholder={theme.content.authRegisterPhonePlaceholder || "Phone"}
         className="border border-gray-300 bg-white p-3 rounded-xl text-[#1a1a1a] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400"
       />
 
@@ -144,7 +146,9 @@ export default function RegisterForm({
         disabled={loading}
         className="bg-black text-white py-3 rounded-xl font-semibold disabled:opacity-60"
       >
-        {loading ? "Registering..." : "Register"}
+        {loading
+          ? theme.content.authRegisterLoadingText || "Registering..."
+          : theme.content.authRegisterButtonText || "Register"}
       </button>
 
       {onLoginClick && (
@@ -153,7 +157,7 @@ export default function RegisterForm({
           onClick={onLoginClick}
           className="bg-gray-200 text-gray-900 py-3 rounded-xl font-semibold mt-2"
         >
-          Login
+          {theme.content.authRegisterLoginButtonText || "Login"}
         </button>
       )}
     </form>

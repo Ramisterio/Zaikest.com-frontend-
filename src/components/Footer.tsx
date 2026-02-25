@@ -13,6 +13,13 @@ import EditableText from "./theme/EditableText";
 export default function Footer() {
   const [email, setEmail] = useState("");
   const { theme, editMode, canManageTheme, updateTheme } = useTheme();
+  const footerCopyrightFallback =
+    "Copyright {year} Zaikest. All rights reserved. Developed by Naeem Rehman.";
+  const footerCopyrightTemplate = theme.content.footerCopyright || footerCopyrightFallback;
+  const footerCopyrightText = footerCopyrightTemplate.replace(
+    /\{year\}/g,
+    String(new Date().getFullYear())
+  );
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,28 +59,139 @@ export default function Footer() {
         </div>
 
         <div className="text-sm text-green-100 space-y-3">
-          <div className="text-xs font-semibold uppercase tracking-wider text-white">Quick links</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-white">
+            <EditableText
+              value={theme.content.footerQuickLinksTitle}
+              fallback="Quick links"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { footerQuickLinksTitle: next } })}
+            />
+          </div>
           <div className="grid gap-2">
-            <Link href="/products" className="hover:text-white transition-colors">Shop all</Link>
-            <Link href="/products?category=Dishes" className="hover:text-white transition-colors">Dishes</Link>
-            <Link href="/products?category=Pastes" className="hover:text-white transition-colors">Pastes</Link>
-            <Link href="/products?category=Spices" className="hover:text-white transition-colors">Spices</Link>
+            <Link href="/products" className="hover:text-white transition-colors">
+              <EditableText
+                value={theme.content.footerQuickLinkShopAll}
+                fallback="Shop all"
+                editMode={editMode && canManageTheme}
+                onSave={(next) => updateTheme({ content: { footerQuickLinkShopAll: next } })}
+              />
+            </Link>
+            <Link href="/products?category=Dishes" className="hover:text-white transition-colors">
+              <EditableText
+                value={theme.content.footerQuickLinkDishes}
+                fallback="Dishes"
+                editMode={editMode && canManageTheme}
+                onSave={(next) => updateTheme({ content: { footerQuickLinkDishes: next } })}
+              />
+            </Link>
+            <Link href="/products?category=Pastes" className="hover:text-white transition-colors">
+              <EditableText
+                value={theme.content.footerQuickLinkPastes}
+                fallback="Pastes"
+                editMode={editMode && canManageTheme}
+                onSave={(next) => updateTheme({ content: { footerQuickLinkPastes: next } })}
+              />
+            </Link>
+            <Link href="/products?category=Spices" className="hover:text-white transition-colors">
+              <EditableText
+                value={theme.content.footerQuickLinkSpices}
+                fallback="Spices"
+                editMode={editMode && canManageTheme}
+                onSave={(next) => updateTheme({ content: { footerQuickLinkSpices: next } })}
+              />
+            </Link>
           </div>
         </div>
 
         <div className="text-sm text-green-100 space-y-3">
-          <div className="text-xs font-semibold uppercase tracking-wider text-white">Contact</div>
-          <div>Email: Zaikest.food@gmail.com</div>
-          <div>Phone: +92 302 0284408</div>
-          <div>Head Office: Karachi, Pakistan</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-white">
+            <EditableText
+              value={theme.content.footerContactTitle}
+              fallback="Contact"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { footerContactTitle: next } })}
+            />
+          </div>
+          <div>
+            <EditableText
+              value={theme.content.footerEmailLabel}
+              fallback="Email"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { footerEmailLabel: next } })}
+              className="inline"
+            />
+            {": "}
+            <EditableText
+              value={theme.company.email}
+              fallback="Zaikest.food@gmail.com"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ company: { email: next } })}
+              className="inline"
+            />
+          </div>
+          <div>
+            <EditableText
+              value={theme.content.footerPhoneLabel}
+              fallback="Phone"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { footerPhoneLabel: next } })}
+              className="inline"
+            />
+            {": "}
+            <EditableText
+              value={theme.company.phone}
+              fallback="+92 302 0284408"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ company: { phone: next } })}
+              className="inline"
+            />
+          </div>
+          <div>
+            <EditableText
+              value={theme.content.footerHeadOfficeLabel}
+              fallback="Head Office"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { footerHeadOfficeLabel: next } })}
+              className="inline"
+            />
+            {": "}
+            <EditableText
+              value={theme.company.address}
+              fallback="Karachi, Pakistan"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ company: { address: next } })}
+              className="inline"
+            />
+          </div>
           <div className="inline-flex items-center gap-2 text-white">
             <FaHeadset />
-            Customer Support: 24/7
+            <EditableText
+              value={theme.content.footerSupportLabel}
+              fallback="Customer Support"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { footerSupportLabel: next } })}
+              className="inline"
+            />
+            {": "}
+            <EditableText
+              value={theme.content.footerText}
+              fallback="24/7"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { footerText: next } })}
+              className="inline"
+            />
           </div>
         </div>
 
         <div className="lg:justify-self-end">
-          <div className="text-xs font-semibold uppercase tracking-wider text-white mb-4 text-left lg:text-right">Follow us</div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-white mb-4 text-left lg:text-right">
+            <EditableText
+              value={theme.content.footerFollowUsTitle}
+              fallback="Follow us"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { footerFollowUsTitle: next } })}
+            />
+          </div>
           <div className="flex lg:justify-end gap-3">
             <a
               href="https://facebook.com/zaikest"
@@ -181,20 +299,16 @@ export default function Footer() {
 
       {/* BOTTOM BAR */}
       <div className="border-t border-white/10 py-5 text-center text-green-100 text-sm">
-        <span>
-          Copyright {new Date().getFullYear()} Zaikest. All rights reserved.
-          {" "}
-          Developed by{" "}
-          <a
-            href="https://naeemrehman.vercel.app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-white underline underline-offset-4 hover:text-white/90"
-          >
-            Naeem Rehman
-          </a>
-          .
-        </span>
+        {editMode && canManageTheme ? (
+          <EditableText
+            value={theme.content.footerCopyright}
+            fallback={footerCopyrightFallback}
+            editMode={true}
+            onSave={(next) => updateTheme({ content: { footerCopyright: next } })}
+          />
+        ) : (
+          <span>{footerCopyrightText}</span>
+        )}
       </div>
     </footer>
   );

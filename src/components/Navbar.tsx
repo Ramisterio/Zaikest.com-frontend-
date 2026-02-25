@@ -14,6 +14,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useCategories } from "../context/CategoriesContext";
 import CartDrawer from "./CartDrawer";
 import { sanitizeSearch } from "../utils/sanitize";
+import EditableText from "./theme/EditableText";
 
 export default function Navbar() {
   const { cart } = useCart();
@@ -21,7 +22,7 @@ export default function Navbar() {
 
   const { user, logout } = useAuth();
   const isLoggedIn = !!user;
-  const { editMode, setEditMode, canManageTheme } = useTheme();
+  const { theme, editMode, setEditMode, canManageTheme, updateTheme } = useTheme();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -102,10 +103,22 @@ export default function Navbar() {
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between text-xs font-semibold">
-          <span>Delivery in 20-30 min in select areas</span>
+          <EditableText
+            value={theme?.content?.navbarDeliveryText || ""}
+            fallback="Delivery in 20-30 min in select areas"
+            editMode={editMode && canManageTheme}
+            onSave={(next) => updateTheme({ content: { navbarDeliveryText: next } })}
+            className="inline-block"
+          />
           <span className="inline-flex items-center gap-1">
             <Sparkles size={12} />
-            Fresh deals every day
+            <EditableText
+              value={theme?.content?.navbarDealsText || ""}
+              fallback="Fresh deals every day"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { navbarDealsText: next } })}
+              className="inline-block"
+            />
           </span>
         </div>
       </div>
@@ -131,18 +144,21 @@ export default function Navbar() {
             href="/"
             className="inline-flex items-center gap-2 px-2 py-1.5 sm:px-3 sm:py-2 rounded-full bg-white/10 border border-white/20 text-[11px] sm:text-sm font-semibold text-white hover:bg-white/20 transition"
           >
-            Home
+            {theme.content.navbarHomeText || "Home"}
           </Link>
 
           <button className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-full bg-white/10 border border-white/20 text-sm text-white hover:bg-white/20 transition">
             <MapPin size={16} className="text-white" />
-            Deliver to <span className="font-semibold">Home</span>
+            {theme.content.navbarDeliverToText || "Deliver to"}{" "}
+            <span className="font-semibold">
+              {theme.content.navbarDeliverToLocation || "Home"}
+            </span>
           </button>
 
           <form onSubmit={handleSearchSubmit} className="flex-1 hidden md:block relative">
             <input
               type="text"
-              placeholder="Search for dishes, pastes, spices"
+              placeholder={theme.content.navbarSearchPlaceholder || "Search for dishes, pastes, spices"}
               className="w-full pl-12 pr-4 py-3 rounded-full border border-white/20 bg-white text-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-red-300"
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -182,7 +198,7 @@ export default function Navbar() {
                           className="block px-4 py-3 hover:bg-red-50"
                           onClick={() => setUserMenuOpen(false)}
                         >
-                          Profile
+                          {theme.content.navbarProfileText || "Profile"}
                         </Link>
 
                         {user.role === "admin" && (
@@ -191,7 +207,7 @@ export default function Navbar() {
                             className="block px-4 py-3 hover:bg-red-50"
                             onClick={() => setUserMenuOpen(false)}
                           >
-                            Admin Dashboard
+                            {theme.content.navbarAdminDashboardText || "Admin Dashboard"}
                           </Link>
                         )}
 
@@ -201,7 +217,7 @@ export default function Navbar() {
                             className="block px-4 py-3 hover:bg-red-50"
                             onClick={() => setUserMenuOpen(false)}
                           >
-                            Edit Theme
+                            {theme.content.navbarEditThemeText || "Edit Theme"}
                           </Link>
                         )}
 
@@ -213,7 +229,10 @@ export default function Navbar() {
                             }}
                             className="w-full text-left px-4 py-3 hover:bg-red-50"
                           >
-                            Live Edit: {editMode ? "On" : "Off"}
+                            {theme.content.navbarLiveEditText || "Live Edit"}:{" "}
+                            {editMode
+                              ? theme.content.navbarLiveEditOnText || "On"
+                              : theme.content.navbarLiveEditOffText || "Off"}
                           </button>
                         )}
 
@@ -221,7 +240,7 @@ export default function Navbar() {
                           onClick={handleLogout}
                           className="w-full text-left px-4 py-3 text-[#c41d1d] hover:bg-red-50"
                         >
-                          Logout
+                          {theme.content.navbarLogoutText || "Logout"}
                         </button>
                       </div>
                     </div>
@@ -235,7 +254,7 @@ export default function Navbar() {
                 aria-label="Open login"
               >
                 <User size={18} />
-                <span className="hidden sm:inline">Login</span>
+                <span className="hidden sm:inline">{theme.content.navbarLoginText || "Login"}</span>
               </button>
             )}
 
@@ -245,7 +264,7 @@ export default function Navbar() {
               aria-label="Open cart"
             >
               <ShoppingCart size={18} />
-              <span className="hidden sm:inline">Cart</span>
+              <span className="hidden sm:inline">{theme.content.navbarCartText || "Cart"}</span>
               {totalItems > 0 && (
                 <span className="absolute -top-1 -right-1 bg-[#0f0f0f] text-xs font-bold text-white w-5 h-5 flex items-center justify-center rounded-full">
                   {totalItems}
@@ -274,10 +293,12 @@ export default function Navbar() {
             href="/products"
             className="text-xs sm:text-sm font-semibold text-white border border-dashed border-white/50 px-3 sm:px-4 h-9 sm:h-10 rounded-full hover:bg-white/10 transition inline-flex items-center justify-center whitespace-nowrap leading-none"
           >
-            View all
+            {theme.content.navbarViewAllText || "View all"}
           </Link>
           {categoryNames.length === 0 ? (
-            <span className="text-xs sm:text-sm text-white/70">Loading categories...</span>
+            <span className="text-xs sm:text-sm text-white/70">
+              {theme.content.navbarLoadingCategoriesText || "Loading categories..."}
+            </span>
           ) : (
             categoryNames.map((cat) => (
               <Link
@@ -297,7 +318,7 @@ export default function Navbar() {
           <form onSubmit={handleSearchSubmit} className="relative">
             <input
               type="text"
-              placeholder="Search for groceries"
+              placeholder={theme.content.navbarMobileSearchPlaceholder || "Search for groceries"}
               className="w-full pl-11 pr-4 py-3 rounded-full border border-white/20 bg-white text-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-red-300"
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -310,7 +331,9 @@ export default function Navbar() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
             {categoryNames.length === 0 ? (
-              <span className="text-sm text-white/70">Loading categories...</span>
+              <span className="text-sm text-white/70">
+                {theme.content.navbarLoadingCategoriesText || "Loading categories..."}
+              </span>
             ) : (
               categoryNames.map((cat) => (
                 <Link

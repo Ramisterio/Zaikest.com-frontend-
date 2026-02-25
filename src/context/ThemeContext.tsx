@@ -29,9 +29,35 @@ export type Theme = {
     featuredCategoriesLabel: string;
     featuredProductsLabel: string;
     announcement: string;
+    navbarDeliveryText: string;
+    navbarDealsText: string;
+    navbarHomeText: string;
+    navbarDeliverToText: string;
+    navbarDeliverToLocation: string;
+    navbarSearchPlaceholder: string;
+    navbarMobileSearchPlaceholder: string;
+    navbarProfileText: string;
+    navbarAdminDashboardText: string;
+    navbarEditThemeText: string;
+    navbarLiveEditText: string;
+    navbarLoginText: string;
+    navbarCartText: string;
+    navbarViewAllText: string;
+    navbarLoadingCategoriesText: string;
     buttonText: string;
     footerText: string;
     footerBlurb: string;
+    footerQuickLinksTitle: string;
+    footerQuickLinkShopAll: string;
+    footerQuickLinkDishes: string;
+    footerQuickLinkPastes: string;
+    footerQuickLinkSpices: string;
+    footerContactTitle: string;
+    footerEmailLabel: string;
+    footerPhoneLabel: string;
+    footerHeadOfficeLabel: string;
+    footerSupportLabel: string;
+    footerFollowUsTitle: string;
     newsletterTitle: string;
     newsletterSubtitle: string;
     newsletterButton: string;
@@ -68,6 +94,81 @@ export type Theme = {
     productFeatureTwo: string;
     productFeatureThree: string;
     productBackToProductsText: string;
+    productCardAddToCartText: string;
+    productCardReadyToShipText: string;
+    productCardUncategorizedText: string;
+    productDetailLoadingText: string;
+    productDetailNotFoundText: string;
+    productDetailAddToCartText: string;
+    authLoginTitle: string;
+    authLoginEmailPlaceholder: string;
+    authLoginPasswordPlaceholder: string;
+    authLoginButtonText: string;
+    authLoginLoadingText: string;
+    authLoginRegisterButtonText: string;
+    authRegisterTitle: string;
+    authRegisterNamePlaceholder: string;
+    authRegisterEmailPlaceholder: string;
+    authRegisterPasswordPlaceholder: string;
+    authRegisterPhonePlaceholder: string;
+    authRegisterButtonText: string;
+    authRegisterLoadingText: string;
+    authRegisterLoginButtonText: string;
+    navbarLiveEditOnText: string;
+    navbarLiveEditOffText: string;
+    navbarLogoutText: string;
+    homeFeaturedViewAllText: string;
+    homeNoProductsText: string;
+    productsLoadingText: string;
+    productsViewAllText: string;
+    productsNoResultsText: string;
+    productsNoResultsForText: string;
+    productsNoCategoryResultsText: string;
+    cartRemoveText: string;
+    cartItemsLabel: string;
+    cartDeliveryLabel: string;
+    cartFreeText: string;
+    cartTotalLabel: string;
+    checkoutNameLabel: string;
+    checkoutEmailLabel: string;
+    checkoutPhoneLabel: string;
+    checkoutPhonePlaceholder: string;
+    checkoutAddressLabel: string;
+    checkoutAddressPlaceholder: string;
+    checkoutUseCurrentLocationText: string;
+    checkoutGettingLocationText: string;
+    checkoutPlacingText: string;
+    checkoutSubtotalLabel: string;
+    checkoutDeliveryLabel: string;
+    checkoutTotalLabel: string;
+    checkoutFreeText: string;
+    checkoutRequiredFieldsError: string;
+    checkoutKarachiOnlyError: string;
+    checkoutCartEmptyError: string;
+    checkoutOrderPlacedSuccess: string;
+    checkoutNetworkError: string;
+    checkoutLocationUnsupportedError: string;
+    checkoutLocationAccessError: string;
+    checkoutLocationFallbackError: string;
+    checkoutLocationCachedNotice: string;
+    ordersPhoneRequiredError: string;
+    ordersLoadFailedError: string;
+    ordersNetworkError: string;
+    ordersHomeLinkText: string;
+    ordersContinueShoppingText: string;
+    ordersPhonePlaceholder: string;
+    ordersOrderIdPlaceholder: string;
+    ordersGoBackHomeText: string;
+    ordersOrderLabel: string;
+    ordersRecentText: string;
+    ordersPendingText: string;
+    ordersBuyerLabel: string;
+    ordersCustomerFallbackText: string;
+    ordersPhoneLabel: string;
+    ordersItemFallbackText: string;
+    ordersTotalLabel: string;
+    ordersDownloadReceiptText: string;
+    ordersDownloadSlipText: string;
   };
   heroStats: ThemeStat[];
   highlights: ThemeHighlight[];
@@ -108,10 +209,36 @@ export const defaultTheme: Theme = {
     featuredCategoriesLabel: "Categories",
     featuredProductsLabel: "Products",
     announcement: "",
+    navbarDeliveryText: "Delivery in 20-30 min in select areas",
+    navbarDealsText: "Fresh deals every day",
+    navbarHomeText: "Home",
+    navbarDeliverToText: "Deliver to",
+    navbarDeliverToLocation: "Home",
+    navbarSearchPlaceholder: "Search for dishes, pastes, spices",
+    navbarMobileSearchPlaceholder: "Search for groceries",
+    navbarProfileText: "Profile",
+    navbarAdminDashboardText: "Admin Dashboard",
+    navbarEditThemeText: "Edit Theme",
+    navbarLiveEditText: "Live Edit",
+    navbarLoginText: "Login",
+    navbarCartText: "Cart",
+    navbarViewAllText: "View all",
+    navbarLoadingCategoriesText: "Loading categories...",
     buttonText: "Shop now",
     footerText: "",
     footerBlurb:
       "Zaikest delivers homemade dishes, fresh pastes, and pantry essentials right to your door.",
+    footerQuickLinksTitle: "Quick links",
+    footerQuickLinkShopAll: "Shop all",
+    footerQuickLinkDishes: "Dishes",
+    footerQuickLinkPastes: "Pastes",
+    footerQuickLinkSpices: "Spices",
+    footerContactTitle: "Contact",
+    footerEmailLabel: "Email",
+    footerPhoneLabel: "Phone",
+    footerHeadOfficeLabel: "Head Office",
+    footerSupportLabel: "Customer Support",
+    footerFollowUsTitle: "Follow us",
     newsletterTitle: "Subscribe to our Newsletter",
     newsletterSubtitle: "New arrivals, seasonal picks, and exclusive bundles.",
     newsletterButton: "Subscribe",
@@ -151,6 +278,81 @@ export const defaultTheme: Theme = {
     productFeatureTwo: "Delivered fresh and sealed",
     productFeatureThree: "Ready in 20-30 minutes",
     productBackToProductsText: "Back to products",
+    productCardAddToCartText: "Add to Cart",
+    productCardReadyToShipText: "Ready to ship",
+    productCardUncategorizedText: "Uncategorized",
+    productDetailLoadingText: "Loading product...",
+    productDetailNotFoundText: "Product not found",
+    productDetailAddToCartText: "Add to Cart",
+    authLoginTitle: "Login",
+    authLoginEmailPlaceholder: "Email",
+    authLoginPasswordPlaceholder: "Password",
+    authLoginButtonText: "Login",
+    authLoginLoadingText: "Logging in...",
+    authLoginRegisterButtonText: "Register",
+    authRegisterTitle: "Register",
+    authRegisterNamePlaceholder: "Full Name",
+    authRegisterEmailPlaceholder: "Email",
+    authRegisterPasswordPlaceholder: "Password",
+    authRegisterPhonePlaceholder: "Phone",
+    authRegisterButtonText: "Register",
+    authRegisterLoadingText: "Registering...",
+    authRegisterLoginButtonText: "Login",
+    navbarLiveEditOnText: "On",
+    navbarLiveEditOffText: "Off",
+    navbarLogoutText: "Logout",
+    homeFeaturedViewAllText: "View all",
+    homeNoProductsText: "No products found.",
+    productsLoadingText: "Loading products...",
+    productsViewAllText: "View all",
+    productsNoResultsText: "No products found.",
+    productsNoResultsForText: "No products found for",
+    productsNoCategoryResultsText: "No products found in this category.",
+    cartRemoveText: "Remove",
+    cartItemsLabel: "Items",
+    cartDeliveryLabel: "Delivery",
+    cartFreeText: "Free",
+    cartTotalLabel: "Total",
+    checkoutNameLabel: "Full name",
+    checkoutEmailLabel: "Email address",
+    checkoutPhoneLabel: "Phone number",
+    checkoutPhonePlaceholder: "Enter phone number",
+    checkoutAddressLabel: "Delivery address",
+    checkoutAddressPlaceholder: "Enter delivery address",
+    checkoutUseCurrentLocationText: "Use current location",
+    checkoutGettingLocationText: "Getting location...",
+    checkoutPlacingText: "Placing...",
+    checkoutSubtotalLabel: "Subtotal",
+    checkoutDeliveryLabel: "Delivery",
+    checkoutTotalLabel: "Total",
+    checkoutFreeText: "Free",
+    checkoutRequiredFieldsError: "Please fill all required fields.",
+    checkoutKarachiOnlyError: "Delivery address must be within Karachi",
+    checkoutCartEmptyError: "Your cart is empty",
+    checkoutOrderPlacedSuccess: "Order placed successfully.",
+    checkoutNetworkError: "Network error. Please try again.",
+    checkoutLocationUnsupportedError: "Location is not supported on this device.",
+    checkoutLocationAccessError: "Unable to access location. Please allow location access.",
+    checkoutLocationFallbackError: "Exact address not found. Coordinates were added instead.",
+    checkoutLocationCachedNotice: "Using last known saved location for this area.",
+    ordersPhoneRequiredError: "Please enter your phone number to view orders.",
+    ordersLoadFailedError: "Failed to load orders. Please try again.",
+    ordersNetworkError: "Network error. Please try again.",
+    ordersHomeLinkText: "Home",
+    ordersContinueShoppingText: "Continue shopping",
+    ordersPhonePlaceholder: "03xx-xxxxxxx",
+    ordersOrderIdPlaceholder: "Order ID (optional)",
+    ordersGoBackHomeText: "Go back home",
+    ordersOrderLabel: "Order",
+    ordersRecentText: "Recent",
+    ordersPendingText: "Pending",
+    ordersBuyerLabel: "Buyer",
+    ordersCustomerFallbackText: "Customer",
+    ordersPhoneLabel: "Phone",
+    ordersItemFallbackText: "Item",
+    ordersTotalLabel: "Total",
+    ordersDownloadReceiptText: "Download receipt",
+    ordersDownloadSlipText: "Download slip",
   },
   heroStats: [
     { title: "20-30 min", text: "Avg delivery" },
@@ -210,10 +412,10 @@ export const defaultTheme: Theme = {
     },
   ],
   company: {
-    name: "",
-    phone: "",
-    email: "",
-    address: "",
+    name: "Zaikest",
+    phone: "+92 302 0284408",
+    email: "Zaikest.food@gmail.com",
+    address: "Karachi, Pakistan",
   },
 };
 
@@ -241,6 +443,12 @@ const mergeTheme = (prev: Theme, patch: ThemePatch): Theme => ({
   promoCards: patch.promoCards ?? prev.promoCards,
 });
 
+const extractThemePayload = (json: any) => {
+  const serverTheme = json?.theme ?? json?.data?.theme;
+  const nextVersion = json?.version ?? json?.data?.version ?? serverTheme?.version ?? null;
+  return { serverTheme, nextVersion };
+};
+
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const canManageTheme = useMemo(
@@ -256,16 +464,22 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const refreshTheme = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(apiPath("/v1/theme"), { credentials: "include" });
+      const res = await fetch(apiPath("/v1/theme"), {
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
       const json = await res.json();
-      const serverTheme = json?.theme ?? json?.data?.theme;
-      const nextVersion = json?.version ?? json?.data?.version ?? serverTheme?.version ?? null;
+      const { serverTheme, nextVersion } = extractThemePayload(json);
       if (res.ok && serverTheme) {
-        setTheme(mergeTheme(defaultTheme, serverTheme));
+        setTheme(serverTheme as Theme);
         setVersion(nextVersion);
       }
     } catch {
-      // keep defaults on error
+      // keep current theme on error
     } finally {
       setLoading(false);
     }
@@ -289,8 +503,11 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         const res = await fetch(apiPath("/v1/admin/theme"), {
           method: "PUT",
           credentials: "include",
+          cache: "no-store",
           headers: {
             "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
             ...(version ? { "If-Match": String(version) } : {}),
           },
           body: JSON.stringify(patch),
@@ -301,10 +518,9 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
           await refreshTheme();
           return;
         }
-        const serverTheme = json?.theme ?? json?.data?.theme;
-        const nextVersion = json?.version ?? json?.data?.version ?? serverTheme?.version ?? null;
+        const { serverTheme, nextVersion } = extractThemePayload(json);
         if (res.ok && serverTheme) {
-          setTheme((prev) => mergeTheme(prev, serverTheme));
+          setTheme(serverTheme as Theme);
           setVersion(nextVersion);
         } else {
           await refreshTheme();
@@ -313,7 +529,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         await refreshTheme();
       }
     },
-    [canManageTheme, refreshTheme]
+    [canManageTheme, refreshTheme, version]
   );
 
   const value: ThemeContextType = {
