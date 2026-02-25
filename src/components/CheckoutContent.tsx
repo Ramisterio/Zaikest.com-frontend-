@@ -570,12 +570,12 @@ export default function CheckoutContent({
         <div
           className={`${
             variant === "modal"
-              ? "bg-gray-100 border border-gray-200 shadow-2xl rounded-3xl p-7"
-              : "bg-white/90 border border-green-100 shadow-2xl rounded-3xl p-8"
+              ? "bg-gray-100 border border-gray-200 shadow-2xl rounded-3xl p-5 sm:p-7"
+              : "bg-white/90 border border-green-100 shadow-2xl rounded-3xl p-5 sm:p-8"
           } text-center`}
         >
           <motion.h1
-            className="text-3xl font-bold text-green-700 mb-2"
+            className="text-2xl sm:text-3xl font-bold text-green-700 mb-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
@@ -589,7 +589,7 @@ export default function CheckoutContent({
 
           <EditableText
             as="p"
-            className="text-[#5f6f61] mb-6"
+            className="text-sm sm:text-base text-[#5f6f61] mb-5 sm:mb-6"
             value={theme.content.checkoutConfirmedSubtitle}
             fallback="Thank you for shopping with Zaikest"
             editMode={editMode && canManageTheme}
@@ -597,7 +597,7 @@ export default function CheckoutContent({
             multiline
           />
 
-          <div className="text-left bg-green-50 rounded-2xl p-4 mb-5">
+          <div className="text-left bg-green-50 rounded-2xl p-3 sm:p-4 mb-4 sm:mb-5 text-sm sm:text-base space-y-1">
             <p>
               <strong>{theme.content.checkoutNameLabel || "Full name"}:</strong> {placedOrder?.user.name}
             </p>
@@ -614,14 +614,14 @@ export default function CheckoutContent({
 
           <div className="text-left space-y-2 mb-4">
             {placedOrder?.items.map((item) => (
-              <div key={item._id} className="flex justify-between text-sm">
-                <span>{item.name} x {item.quantity}</span>
-                <span>PKR {item.price * item.quantity}</span>
+              <div key={item._id} className="flex items-start justify-between gap-3 text-sm">
+                <span className="min-w-0 break-words">{item.name} x {item.quantity}</span>
+                <span className="shrink-0">PKR {item.price * item.quantity}</span>
               </div>
             ))}
           </div>
 
-          <div className="text-left text-sm text-[#5f6f61] border-t border-green-100 pt-3 mb-4">
+          <div className="text-left text-sm text-[#5f6f61] border-t border-green-100 pt-3 mb-4 space-y-1.5">
             <div className="flex justify-between">
               <span>{theme.content.checkoutSubtotalLabel || "Subtotal"}</span>
               <span>PKR {placedOrder?.subtotal ?? 0}</span>
@@ -641,37 +641,39 @@ export default function CheckoutContent({
             <span>PKR {placedOrder?.total ?? 0}</span>
           </div>
 
-          <Link
-            href="/products"
-            className="inline-block bg-green-700 text-white px-6 py-3 rounded-full hover:bg-green-800 transition"
-          >
-            {editMode && canManageTheme ? (
-              <EditableText
-                value={theme.content.checkoutContinueShoppingText}
-                fallback="Continue Shopping"
-                editMode={true}
-                onSave={(next) => updateTheme({ content: { checkoutContinueShoppingText: next } })}
-              />
-            ) : (
-              theme.content.checkoutContinueShoppingText || "Continue Shopping"
-            )}
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 sm:justify-center">
+            <Link
+              href="/products"
+              className="inline-flex items-center justify-center bg-green-700 text-white px-6 py-3 rounded-full hover:bg-green-800 transition w-full sm:w-auto"
+            >
+              {editMode && canManageTheme ? (
+                <EditableText
+                  value={theme.content.checkoutContinueShoppingText}
+                  fallback="Continue Shopping"
+                  editMode={true}
+                  onSave={(next) => updateTheme({ content: { checkoutContinueShoppingText: next } })}
+                />
+              ) : (
+                theme.content.checkoutContinueShoppingText || "Continue Shopping"
+              )}
+            </Link>
 
-          <button
-            onClick={handleDownloadReceipt}
-            className="ml-3 inline-block bg-white border border-green-200 text-green-900 px-6 py-3 rounded-full font-semibold hover:border-green-400 transition"
-          >
-            {editMode && canManageTheme ? (
-              <EditableText
-                value={theme.content.checkoutDownloadSlipText}
-                fallback="Download Summary Slip"
-                editMode={true}
-                onSave={(next) => updateTheme({ content: { checkoutDownloadSlipText: next } })}
-              />
-            ) : (
-              theme.content.checkoutDownloadSlipText || "Download Summary Slip"
-            )}
-          </button>
+            <button
+              onClick={handleDownloadReceipt}
+              className="inline-flex items-center justify-center bg-white border border-green-200 text-green-900 px-6 py-3 rounded-full font-semibold hover:border-green-400 transition w-full sm:w-auto"
+            >
+              {editMode && canManageTheme ? (
+                <EditableText
+                  value={theme.content.checkoutDownloadSlipText}
+                  fallback="Download Summary Slip"
+                  editMode={true}
+                  onSave={(next) => updateTheme({ content: { checkoutDownloadSlipText: next } })}
+                />
+              ) : (
+                theme.content.checkoutDownloadSlipText || "Download Summary Slip"
+              )}
+            </button>
+          </div>
         </div>
         </div>
       </motion.div>

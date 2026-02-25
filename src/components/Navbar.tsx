@@ -98,26 +98,26 @@ export default function Navbar() {
       className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-[#c41d1d] to-[#0f0f0f] text-white"
     >
       <div
-        className={`hidden md:block transition-all duration-300 ${
-          effectiveCompact ? "max-h-0 opacity-0 overflow-hidden" : "max-h-12 opacity-100"
+        className={`block transition-all duration-300 ${
+          effectiveCompact ? "max-h-0 opacity-0 overflow-hidden" : "max-h-24 sm:max-h-16 opacity-100"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between text-xs font-semibold">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-1 sm:gap-0 text-[11px] sm:text-xs font-semibold">
           <EditableText
             value={theme?.content?.navbarDeliveryText || ""}
             fallback="Delivery in 20-30 min in select areas"
             editMode={editMode && canManageTheme}
             onSave={(next) => updateTheme({ content: { navbarDeliveryText: next } })}
-            className="inline-block"
+            className="inline-block leading-tight break-words max-w-full"
           />
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 leading-tight w-full sm:w-auto">
             <Sparkles size={12} />
             <EditableText
               value={theme?.content?.navbarDealsText || ""}
               fallback="Fresh deals every day"
               editMode={editMode && canManageTheme}
               onSave={(next) => updateTheme({ content: { navbarDealsText: next } })}
-              className="inline-block"
+              className="inline-block break-words"
             />
           </span>
         </div>
@@ -125,7 +125,7 @@ export default function Navbar() {
 
       <div className="border-b border-white/10">
         <nav
-          className={`max-w-7xl mx-auto px-4 flex items-center gap-2 sm:gap-4 transition-all duration-300 min-w-0 ${
+          className={`max-w-7xl mx-auto px-4 flex flex-wrap md:flex-nowrap items-center gap-1.5 sm:gap-3 transition-all duration-300 min-w-0 ${
             effectiveCompact ? "py-2" : "py-2.5 sm:py-3"
           }`}
         >
@@ -142,7 +142,7 @@ export default function Navbar() {
           </div>
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-2 py-1.5 sm:px-3 sm:py-2 rounded-full bg-white/10 border border-white/20 text-[11px] sm:text-sm font-semibold text-white hover:bg-white/20 transition"
+            className="inline-flex items-center gap-2 px-2 py-1.5 sm:px-3 sm:py-2 rounded-full bg-white/10 border border-white/20 text-[10px] sm:text-sm font-semibold text-white hover:bg-white/20 transition"
           >
             {theme.content.navbarHomeText || "Home"}
           </Link>
@@ -169,7 +169,7 @@ export default function Navbar() {
             />
           </form>
 
-          <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-3 shrink-0">
             {isLoggedIn ? (
               <div className="relative">
                 <button
