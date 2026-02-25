@@ -49,6 +49,7 @@ export default function CheckoutContent({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<{
     items: typeof cart;
@@ -370,14 +371,135 @@ export default function CheckoutContent({
       return;
     }
     setError("");
+    setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        const locationText = `Lat ${latitude.toFixed(5)}, Lng ${longitude.toFixed(5)}`;
-        setUser((prev) => ({ ...prev, address: locationText }));
+      async (position) => {
+        const { latitude, longitude, accuracy } = position.coords;
+        const exactPoint = `Point: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+        const cacheKey = `geo:${latitude.toFixed(5)},${longitude.toFixed(5)}`;
+        const cleanText = (value?: unknown) =>
+          String(value ?? "")
+            .replace(/\s+/g, " ")
+            .trim();
+        const buildAddressText = (payload: any) => {
+          const address = payload?.address || {};
+          const place = cleanText(
+            address.amenity ||
+              address.building ||
+              address.shop ||
+              address.office ||
+              address.house_name ||
+              address.attraction ||
+              address.university ||
+              address.college ||
+              address.school ||
+              address.hostel ||
+              payload?.name ||
+              payload?.namedetails?.["name:en"] ||
+              payload?.namedetails?.name ||
+              payload?.namedetails?.official_name
+          );
+          const street = [cleanText(address.house_number), cleanText(address.road || address.pedestrian || address.footway)]
+            .filter(Boolean)
+            .join(" ");
+          const area = cleanText(
+            address.neighbourhood ||
+              address.suburb ||
+              address.quarter ||
+              address.residential ||
+              address.hamlet ||
+              address.city_district ||
+              address.city
+          );
+          const district = cleanText(
+            address.county ||
+              address.state_district ||
+              address.city_district ||
+              address.city ||
+              address.town ||
+              address.village
+          );
+          const parts = [
+            place ? `Place: ${place}` : "",
+            street ? `Street: ${street}` : "",
+            area ? `Area: ${area}` : "",
+            district && district !== area ? `District: ${district}` : "",
+            exactPoint,
+          ].filter((part, index, arr) => Boolean(part) && arr.indexOf(part) === index);
+          return parts.join(", ");
+        };
+        const fetchReverse = async () => {
+          const url =
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2` +
+            `&lat=${encodeURIComponent(String(latitude))}` +
+            `&lon=${encodeURIComponent(String(longitude))}` +
+            `&addressdetails=1&zoom=18&namedetails=1&extratags=1&accept-language=en`;
+
+          const controller = new AbortController();
+          const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+          try {
+            const res = await fetch(url, {
+              method: "GET",
+              headers: { Accept: "application/json" },
+              cache: "no-store",
+              signal: controller.signal,
+            });
+            if (!res.ok) throw new Error("reverse geocode failed");
+            return await res.json();
+          } finally {
+            window.clearTimeout(timeoutId);
+          }
+        };
+
+        try {
+          let data: any = null;
+          try {
+            data = await fetchReverse();
+          } catch {
+            // Single retry for transient network/provider issues.
+            await new Promise((resolve) => window.setTimeout(resolve, 600));
+            data = await fetchReverse();
+          }
+
+          const fullAddress = buildAddressText(data);
+          setUser((prev) => ({ ...prev, address: sanitizeAddress(fullAddress) }));
+          try {
+            localStorage.setItem(cacheKey, fullAddress);
+          } catch {
+            // Ignore cache failures.
+          }
+          if (Number.isFinite(accuracy) && accuracy > 80) {
+            setError(
+              `GPS accuracy is low (${Math.round(accuracy)}m). Move outdoors and try again for better area/street accuracy.`
+            );
+          }
+        } catch {
+          const cachedAddress = (() => {
+            try {
+              return localStorage.getItem(cacheKey) || "";
+            } catch {
+              return "";
+            }
+          })();
+          if (cachedAddress) {
+            setUser((prev) => ({ ...prev, address: sanitizeAddress(cachedAddress) }));
+            setError("Using last known saved location for this area.");
+          } else {
+            setUser((prev) => ({ ...prev, address: exactPoint }));
+            setError("Exact address not found. Coordinates were added instead.");
+          }
+        } finally {
+          setIsLocating(false);
+        }
       },
       () => {
+        setIsLocating(false);
         setError("Unable to access location. Please allow location access.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
       }
     );
   };
@@ -637,9 +759,10 @@ export default function CheckoutContent({
             <button
               type="button"
               onClick={handleUseCurrentLocation}
-              className="text-xs font-semibold text-green-700 hover:text-green-800"
+              className="text-xs font-semibold text-green-700 hover:text-green-800 disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={isLocating || isPlacingOrder}
             >
-              Use current location
+              {isLocating ? "Getting location..." : "Use current location"}
             </button>
           </div>
           <textarea

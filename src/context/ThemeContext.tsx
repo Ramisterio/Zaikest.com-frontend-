@@ -9,6 +9,7 @@ export type ThemeStat = { title: string; text: string };
 export type ThemePromoCard = { title: string; text: string; badge: string; enabled?: boolean };
 
 export type Theme = {
+  themeSchemaVersion?: number;
   colors: {
     primary: string;
     secondary: string;
@@ -85,7 +86,8 @@ export type ThemePatch = Partial<Omit<Theme, "colors" | "content" | "company">> 
   company?: Partial<Theme["company"]>;
 };
 
-const defaultTheme: Theme = {
+export const defaultTheme: Theme = {
+  themeSchemaVersion: 1,
   colors: {
     primary: "#1a1a1a",
     secondary: "#f5f5f5",
@@ -220,6 +222,7 @@ type ThemeContextType = {
   loading: boolean;
   editMode: boolean;
   canManageTheme: boolean;
+  version: string | number | null;
   setEditMode: (next: boolean) => void;
   refreshTheme: () => Promise<void>;
   updateTheme: (patch: ThemePatch) => Promise<void>;
@@ -248,14 +251,18 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [theme, setTheme] = useState<Theme>(defaultTheme);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
+  const [version, setVersion] = useState<string | number | null>(null);
 
   const refreshTheme = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(apiPath("/v1/theme"), { credentials: "include" });
       const json = await res.json();
-      if (res.ok && json?.theme) {
-        setTheme(mergeTheme(defaultTheme, json.theme));
+      const serverTheme = json?.theme ?? json?.data?.theme;
+      const nextVersion = json?.version ?? json?.data?.version ?? serverTheme?.version ?? null;
+      if (res.ok && serverTheme) {
+        setTheme(mergeTheme(defaultTheme, serverTheme));
+        setVersion(nextVersion);
       }
     } catch {
       // keep defaults on error
@@ -282,12 +289,23 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         const res = await fetch(apiPath("/v1/admin/theme"), {
           method: "PUT",
           credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(version ? { "If-Match": String(version) } : {}),
+          },
           body: JSON.stringify(patch),
         });
         const json = await res.json();
-        if (res.ok && json?.theme) {
-          setTheme(mergeTheme(defaultTheme, json.theme));
+        if (res.status === 409) {
+          console.warn("Theme changed, reloaded latest.");
+          await refreshTheme();
+          return;
+        }
+        const serverTheme = json?.theme ?? json?.data?.theme;
+        const nextVersion = json?.version ?? json?.data?.version ?? serverTheme?.version ?? null;
+        if (res.ok && serverTheme) {
+          setTheme((prev) => mergeTheme(prev, serverTheme));
+          setVersion(nextVersion);
         } else {
           await refreshTheme();
         }
@@ -303,6 +321,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     loading,
     editMode,
     canManageTheme,
+    version,
     setEditMode,
     refreshTheme,
     updateTheme,
