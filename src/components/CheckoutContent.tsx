@@ -277,7 +277,6 @@ export default function CheckoutContent({
     setSuccess("");
     if (
       !user.name.trim() ||
-      !user.email.trim() ||
       !user.phone.trim() ||
       !user.address.trim()
     ) {
@@ -509,14 +508,15 @@ export default function CheckoutContent({
 
   const containerClass =
     variant === "modal"
-      ? "max-w-5xl mx-auto py-6 px-4"
-      : "max-w-6xl mx-auto py-12 px-4";
+      ? "max-w-5xl mx-auto py-5 sm:py-6 px-3 sm:px-4"
+      : "max-w-6xl mx-auto py-8 sm:py-12 px-3 sm:px-4";
   const cardClass =
     variant === "modal"
-      ? "bg-gray-100 border border-gray-200 shadow-lg rounded-2xl p-5"
-      : "bg-white/90 border border-green-100 shadow-lg rounded-2xl p-6";
+      ? "bg-gray-100 border border-gray-200 shadow-lg rounded-2xl p-4 sm:p-5"
+      : "bg-white/90 border border-green-100 shadow-lg rounded-2xl p-4 sm:p-6";
   const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-200";
   const inputClassPlain = "w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-200";
+  const inputGroupClass = "space-y-2";
 
   if (cart.length === 0 && !orderPlaced) {
     return (
@@ -706,7 +706,7 @@ export default function CheckoutContent({
       )}
       <EditableText
         as="h1"
-        className="text-3xl font-bold mb-6 text-center text-green-950"
+        className="text-2xl sm:text-3xl font-bold mb-5 sm:mb-6 text-center text-green-950"
         value={theme.content.checkoutTitle}
         fallback="Checkout"
         editMode={editMode && canManageTheme}
@@ -724,18 +724,18 @@ export default function CheckoutContent({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className={`${cardClass} space-y-4`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+        <div className={`${cardClass} space-y-4 sm:space-y-5`}>
           <EditableText
             as="h2"
-            className="font-semibold text-xl border-b border-green-100 pb-2"
+            className="font-semibold text-lg sm:text-xl border-b border-green-100 pb-2"
             value={theme.content.checkoutDeliveryTitle}
             fallback="Delivery Details"
             editMode={editMode && canManageTheme}
             onSave={(next) => updateTheme({ content: { checkoutDeliveryTitle: next } })}
           />
 
-          <div className="space-y-1.5">
+          <div className={inputGroupClass}>
             <label className="text-sm font-medium text-green-900 block">
               {theme.content.checkoutNameLabel || "Full name"}
             </label>
@@ -750,9 +750,9 @@ export default function CheckoutContent({
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className={inputGroupClass}>
             <label className="text-sm font-medium text-green-900 block">
-              {theme.content.checkoutEmailLabel || "Email address"}
+              {(theme.content.checkoutEmailLabel || "Email address") + " (optional)"}
             </label>
             <input
               value={user.email}
@@ -761,11 +761,10 @@ export default function CheckoutContent({
               }
               className={inputClass}
               disabled={isPlacingOrder}
-              required
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className={inputGroupClass}>
             <label className="text-sm font-medium text-green-900 flex items-center gap-2">
               <Phone size={16} />
               {theme.content.checkoutPhoneLabel || "Phone number"}
@@ -780,7 +779,7 @@ export default function CheckoutContent({
             />
           </div>
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <label className="text-sm font-medium text-green-900 flex items-center gap-2">
               <MapPin size={16} />
               {theme.content.checkoutAddressLabel || "Delivery address"}
@@ -796,7 +795,7 @@ export default function CheckoutContent({
                 : theme.content.checkoutUseCurrentLocationText || "Use current location"}
             </button>
           </div>
-          <div className="space-y-1.5">
+          <div className={inputGroupClass}>
             <textarea
               placeholder={theme.content.checkoutAddressPlaceholder || "Enter delivery address"}
               value={user.address}
@@ -808,10 +807,10 @@ export default function CheckoutContent({
           </div>
         </div>
 
-        <div className={cardClass}>
+        <div className={`${cardClass} space-y-3 sm:space-y-4`}>
           <EditableText
             as="h2"
-            className="font-semibold text-xl border-b border-green-100 pb-2 mb-4"
+            className="font-semibold text-lg sm:text-xl border-b border-green-100 pb-2 mb-3 sm:mb-4"
             value={theme.content.checkoutOrderSummaryTitle}
             fallback="Order Summary"
             editMode={editMode && canManageTheme}
@@ -819,23 +818,23 @@ export default function CheckoutContent({
           />
 
           {cart.map((item) => (
-            <div key={item._id} className="flex justify-between mb-2 text-sm">
-              <span>{item.name} x {item.quantity}</span>
-              <span>PKR {item.price * item.quantity}</span>
+            <div key={item._id} className="flex items-start justify-between gap-3 text-sm">
+              <span className="min-w-0 break-words">{item.name} x {item.quantity}</span>
+              <span className="shrink-0">PKR {item.price * item.quantity}</span>
             </div>
           ))}
 
-          <div className="flex justify-between text-sm text-[#5f6f61] mt-4">
+          <div className="flex justify-between text-sm text-[#5f6f61] pt-3 sm:pt-4">
             <span>{theme.content.checkoutSubtotalLabel || "Subtotal"}</span>
             <span>PKR {subtotal}</span>
           </div>
 
-          <div className="flex justify-between text-sm text-[#5f6f61] mt-2">
+          <div className="flex justify-between text-sm text-[#5f6f61]">
             <span>{theme.content.checkoutDeliveryLabel || "Delivery"}</span>
             <span>{deliveryFee ? `PKR ${deliveryFee}` : theme.content.checkoutFreeText || "Free"}</span>
           </div>
 
-          <div className="flex justify-between font-bold text-lg border-t border-green-100 pt-3 mt-4">
+          <div className="flex justify-between font-bold text-base sm:text-lg border-t border-green-100 pt-3 mt-3 sm:mt-4">
             <span>{theme.content.checkoutTotalLabel || "Total"}</span>
             <span>PKR {totalPrice}</span>
           </div>

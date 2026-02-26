@@ -1,7 +1,7 @@
 "use client";
 
 export const sanitizeText = (value: string) =>
-  value.replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
+  value.replace(/[<>]/g, "").replace(/\s{2,}/g, " ");
 
 export const sanitizeEmail = (value: string) =>
   value.replace(/[<>\s]/g, "").trim();
@@ -13,7 +13,7 @@ export const sanitizeSearch = (value: string) =>
   value.replace(/[<>]/g, "").replace(/\s+/g, " ").trimStart();
 
 export const sanitizeAddress = (value: string) =>
-  value.replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
+  value.replace(/[<>]/g, "").replace(/\s{2,}/g, " ");
 
 export const sanitizePassword = (value: string) =>
   value.replace(/[\u0000-\u001F\u007F]/g, "");
