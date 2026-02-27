@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCart } from "../context/CartContext";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -42,6 +42,14 @@ export default function CheckoutContent({
     area: "",
   });
   const [locationLabel, setLocationLabel] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const errorTimerRef = useRef<number | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const houseNoInputRef = useRef<HTMLInputElement>(null);
+  const streetInputRef = useRef<HTMLInputElement>(null);
+  const citySelectRef = useRef<HTMLSelectElement>(null);
+  const areaInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authUser) return;
@@ -52,6 +60,12 @@ export default function CheckoutContent({
       id: authUser.id || prev.id,
     }));
   }, [authUser]);
+
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current) window.clearTimeout(errorTimerRef.current);
+    };
+  }, []);
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -85,6 +99,45 @@ export default function CheckoutContent({
   const setAddressAndParts = (nextParts: typeof addressParts) => {
     setAddressParts(nextParts);
     setUser((prev) => ({ ...prev, address: buildFullAddress(nextParts) }));
+  };
+
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const showFieldError = (field: string, message: string) => {
+    setFieldErrors({ [field]: message });
+    setError(message);
+    if (errorTimerRef.current) window.clearTimeout(errorTimerRef.current);
+    errorTimerRef.current = window.setTimeout(() => {
+      setError("");
+      setFieldErrors({});
+    }, 3000);
+  };
+
+  const focusField = (field: string) => {
+    if (field === "name") nameInputRef.current?.focus();
+    if (field === "phone") phoneInputRef.current?.focus();
+    if (field === "houseNo") houseNoInputRef.current?.focus();
+    if (field === "street") streetInputRef.current?.focus();
+    if (field === "city") citySelectRef.current?.focus();
+    if (field === "area") areaInputRef.current?.focus();
+  };
+
+  const getMissingRequiredField = () => {
+    if (!user.name.trim()) return { field: "name", message: "Full name is required." };
+    if (!user.phone.trim()) return { field: "phone", message: "Phone/WhatsApp is required." };
+    if (!addressParts.houseNo.trim()) return { field: "houseNo", message: "House number is required." };
+    if (!addressParts.street.trim()) return { field: "street", message: "Street address is required." };
+    if (!addressParts.city.trim()) return { field: "city", message: "City is required." };
+    if (!addressParts.area.trim()) return { field: "area", message: "Area is required." };
+    if (!user.address.trim()) return { field: "street", message: "Complete delivery address is required." };
+    return null;
   };
 
   const pickFirstString = (...values: unknown[]) => {
@@ -374,15 +427,13 @@ export default function CheckoutContent({
   const handlePlaceOrder = async () => {
     setError("");
     setSuccess("");
-    if (
-      !user.name.trim() ||
-      !user.phone.trim() ||
-      !user.address.trim()
-    ) {
-      setError(theme.content.checkoutRequiredFieldsError || "Please fill all required fields.");
+    const missingField = getMissingRequiredField();
+    if (missingField) {
+      showFieldError(missingField.field, missingField.message);
+      focusField(missingField.field);
       return;
     }
-    if (!/karachi/i.test(user.address)) {
+    if (addressParts.city.trim().toLowerCase() !== "karachi") {
       setError(theme.content.checkoutKarachiOnlyError || "Delivery address must be within Karachi");
       return;
     }
@@ -666,6 +717,16 @@ export default function CheckoutContent({
   const inputClassPlain =
     "w-full border border-[#9fa9b4] rounded-xl px-4 py-3 bg-[#d8dee5] text-[#1d2329] placeholder:text-[#6f7884]";
   const inputGroupClass = "space-y-2";
+  const withFieldValidationClass = (baseClass: string, field: string) =>
+    fieldErrors[field] ? `${baseClass} border-red-500 ring-2 ring-red-200 bg-red-50` : baseClass;
+  const isFormComplete =
+    !!user.name.trim() &&
+    !!user.phone.trim() &&
+    !!addressParts.houseNo.trim() &&
+    !!addressParts.street.trim() &&
+    !!addressParts.city.trim() &&
+    !!addressParts.area.trim() &&
+    !!user.address.trim();
   const checkoutBgStyle = {
     backgroundImage:
       "url(https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=2000&q=80), url('/images/wide-banner.jpg')",
@@ -761,10 +822,10 @@ export default function CheckoutContent({
               <strong>{theme.content.checkoutEmailLabel || "Email address"}:</strong> {placedOrder?.user.email}
             </p>
             <p>
-              <strong>{theme.content.checkoutPhoneLabel || "Phone number"}:</strong> {placedOrder?.user.phone}
+              <strong>{theme.content.checkoutPhoneLabel || "Phone/WhatsApp"}:</strong> {placedOrder?.user.phone}
             </p>
             <p>
-              <strong>{theme.content.checkoutAddressLabel || "Delivery address"}:</strong> {placedOrder?.user.address}
+              <strong>{theme.content.checkoutAddressLabel || "Complete delivery address"}:</strong> {placedOrder?.user.address}
             </p>
           </div>
 
@@ -894,11 +955,12 @@ export default function CheckoutContent({
               {(theme.content.checkoutNameLabel || "Full name") + " (required)"}
             </label>
             <input
+              ref={nameInputRef}
               value={user.name}
               onChange={(e) =>
-                setUser({ ...user, name: sanitizeText(e.target.value) })
+                (setUser({ ...user, name: sanitizeText(e.target.value) }), clearFieldError("name"))
               }
-              className={inputClass}
+              className={withFieldValidationClass(inputClass, "name")}
               disabled={isPlacingOrder}
               required
             />
@@ -921,13 +983,17 @@ export default function CheckoutContent({
           <div className={inputGroupClass}>
             <label className="text-sm font-medium text-green-900 flex items-center gap-2">
               <Phone size={16} />
-              {(theme.content.checkoutPhoneLabel || "Phone number") + " (required)"}
+              {(theme.content.checkoutPhoneLabel || "Phone/WhatsApp") + " (required)"}
             </label>
             <input
+              ref={phoneInputRef}
               placeholder={theme.content.checkoutPhonePlaceholder || "Enter phone number"}
               value={user.phone}
-              onChange={(e) => setUser({ ...user, phone: sanitizePhone(e.target.value) })}
-              className={inputClassPlain}
+              onChange={(e) => {
+                setUser({ ...user, phone: sanitizePhone(e.target.value) });
+                clearFieldError("phone");
+              }}
+              className={withFieldValidationClass(inputClassPlain, "phone")}
               disabled={isPlacingOrder}
               required
             />
@@ -936,7 +1002,7 @@ export default function CheckoutContent({
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pt-1">
             <label className="text-sm font-medium text-green-900 flex items-center gap-2">
               <MapPin size={16} />
-              {(theme.content.checkoutAddressLabel || "Delivery address") + " (required)"}
+              {(theme.content.checkoutAddressLabel || "Complete delivery address") + " (required)"}
             </label>
             <button
               type="button"
@@ -973,31 +1039,36 @@ export default function CheckoutContent({
             <div className={inputGroupClass}>
               <label className="text-sm font-medium text-green-900 block">House No:</label>
               <input
+                ref={houseNoInputRef}
                 placeholder="e.g. House #5"
                 value={addressParts.houseNo}
-                onChange={(e) =>
+                onChange={(e) => {
                   setAddressAndParts({
                     ...addressParts,
                     houseNo: sanitizeText(e.target.value),
-                  })
-                }
-                className={inputClass}
+                  });
+                  clearFieldError("houseNo");
+                }}
+                className={withFieldValidationClass(inputClass, "houseNo")}
                 disabled={isPlacingOrder}
+                required
               />
             </div>
 
             <div className={inputGroupClass}>
               <label className="text-sm font-medium text-green-900 block">Street Address</label>
               <input
+                ref={streetInputRef}
                 placeholder="e.g. Street 2, Block A"
                 value={addressParts.street}
-                onChange={(e) =>
+                onChange={(e) => {
                   setAddressAndParts({
                     ...addressParts,
                     street: sanitizeAddress(e.target.value),
-                  })
-                }
-                className={inputClass}
+                  });
+                  clearFieldError("street");
+                }}
+                className={withFieldValidationClass(inputClass, "street")}
                 disabled={isPlacingOrder}
                 required
               />
@@ -1005,14 +1076,16 @@ export default function CheckoutContent({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <select
+                ref={citySelectRef}
                 value={addressParts.city}
-                onChange={(e) =>
+                onChange={(e) => {
                   setAddressAndParts({
                     ...addressParts,
                     city: sanitizeText(e.target.value),
-                  })
-                }
-                className={inputClass}
+                  });
+                  clearFieldError("city");
+                }}
+                className={withFieldValidationClass(inputClass, "city")}
                 disabled={isPlacingOrder}
                 required
               >
@@ -1022,15 +1095,17 @@ export default function CheckoutContent({
                 <option value="Karachi">Karachi</option>
               </select>
               <input
+                ref={areaInputRef}
                 placeholder="Area"
                 value={addressParts.area}
-                onChange={(e) =>
+                onChange={(e) => {
                   setAddressAndParts({
                     ...addressParts,
                     area: sanitizeText(e.target.value),
-                  })
-                }
-                className={inputClass}
+                  });
+                  clearFieldError("area");
+                }}
+                className={withFieldValidationClass(inputClass, "area")}
                 disabled={isPlacingOrder}
                 required
               />
@@ -1088,8 +1163,11 @@ export default function CheckoutContent({
 
           <button
             onClick={handlePlaceOrder}
-            className="w-full bg-green-700 text-white py-3 rounded-xl font-semibold hover:bg-green-800 transition inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            className={`w-full text-white py-3 rounded-xl font-semibold transition inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+              isFormComplete ? "bg-green-700 hover:bg-green-800" : "bg-gray-500 hover:bg-gray-600"
+            }`}
             disabled={isPlacingOrder}
+            aria-disabled={!isFormComplete}
           >
             <CreditCard size={18} />
             {isPlacingOrder ? (
