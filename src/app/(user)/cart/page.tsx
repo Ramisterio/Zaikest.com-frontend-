@@ -205,7 +205,7 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between text-sm text-[#5f6f61] mb-4">
                   <span>{theme.content.cartDeliveryLabel || "Delivery"}</span>
-                  <span>{theme.content.cartFreeText || "Free"}</span>
+                  <span>{theme.content.cartFreeText || "Calculated at checkout"}</span>
                 </div>
                 <div className="flex justify-between font-bold text-lg border-t border-green-100 pt-4 mb-6">
                   <span>{theme.content.cartTotalLabel || "Total"}</span>

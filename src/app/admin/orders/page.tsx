@@ -118,7 +118,21 @@ export default function OrdersPage() {
             : order.orderStatus?.toLowerCase() === "delivered"
             ? "Delivered"
             : order.status || "Pending",
-        totalLabel: order.totalAmount ?? order.total ?? order.subtotal ?? 0,
+        subtotalLabel:
+          order.subtotal ??
+          (order.items || []).reduce(
+            (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
+            0
+          ),
+        deliveryLabel: order.deliveryFee ?? 0,
+        totalLabel:
+          order.totalAmount ??
+          order.total ??
+          ((order.subtotal ??
+            (order.items || []).reduce(
+              (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
+              0
+            )) + (order.deliveryFee ?? 0)),
       })),
     [orders]
   );
@@ -175,7 +189,11 @@ export default function OrdersPage() {
                     )}
                   </td>
                   <td className="text-center">
-                    PKR {order.totalLabel}
+                    <div className="leading-tight">
+                      <div className="text-xs text-gray-500">Sub: PKR {order.subtotalLabel}</div>
+                      <div className="text-xs text-gray-500">Del: PKR {order.deliveryLabel}</div>
+                      <div className="font-semibold">PKR {order.totalLabel}</div>
+                    </div>
                   </td>
                   <td className="text-center">
                     <select

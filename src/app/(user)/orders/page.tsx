@@ -189,7 +189,7 @@ export default function OrdersPage() {
             <div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 12px; font-size: 14px;">
               <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px;">
                 <span>Total</span>
-                <span>PKR ${receipt.totalAmount ?? receipt.subtotal ?? 0}</span>
+                <span>PKR ${receipt.totalAmount ?? (receipt.subtotal ?? 0)}</span>
               </div>
             </div>
 
@@ -245,6 +245,19 @@ export default function OrdersPage() {
   const formattedOrders = useMemo(
     () =>
       orders.map((order) => ({
+        ...(() => {
+          const itemsSubtotal = (order.items || []).reduce(
+            (sum, item) => sum + (item.price || 0) * (item.quantity ?? 1),
+            0
+          );
+          const subtotalLabel = order.subtotal ?? itemsSubtotal;
+          const deliveryLabel = order.deliveryFee ?? 0;
+          const totalLabel =
+            order.total ??
+            (order as any).totalAmount ??
+            subtotalLabel + deliveryLabel;
+          return { subtotalLabel, deliveryLabel, totalLabel };
+        })(),
         ...order,
         createdAtLabel: order.createdAt
           ? new Date(order.createdAt).toLocaleString()
@@ -253,15 +266,6 @@ export default function OrdersPage() {
           order.orderStatus ||
           order.status ||
           theme.content.ordersPendingText || "Pending",
-        totalLabel:
-          order.total ??
-          order.subtotal ??
-          (order.items || []).reduce(
-            (sum, item) =>
-              sum +
-              (item.price || 0) * (item.quantity ?? 1),
-            0
-          ),
       })),
     [orders]
   );
@@ -431,8 +435,16 @@ export default function OrdersPage() {
               </div>
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-4 border-t border-green-100 pt-3">
-                <div className="text-sm font-semibold text-green-950">
-                  {theme.content.ordersTotalLabel || "Total"}: PKR {order.totalLabel ?? 0}
+                <div className="text-sm text-green-950 space-y-0.5">
+                  <div className="font-medium">
+                    {theme.content.checkoutSubtotalLabel || "Subtotal"}: PKR {order.subtotalLabel ?? 0}
+                  </div>
+                  <div className="font-medium">
+                    {theme.content.checkoutDeliveryLabel || "Delivery"}: PKR {order.deliveryLabel ?? 0}
+                  </div>
+                  <div className="font-semibold">
+                    {theme.content.ordersTotalLabel || "Total"}: PKR {order.totalLabel ?? 0}
+                  </div>
                 </div>
                 {getDownloadUrl(order) && (
                   <button

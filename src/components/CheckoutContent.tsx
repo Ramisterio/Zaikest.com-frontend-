@@ -24,8 +24,8 @@ export default function CheckoutContent({
   const { user: authUser } = useAuth();
   const { theme, editMode, canManageTheme, updateTheme } = useTheme();
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const deliveryFee = cart.length > 0 ? 0 : 0;
-  const totalPrice = subtotal + deliveryFee;
+  const previewDeliveryFee = 200;
+  const totalPrice = subtotal + previewDeliveryFee;
   const ORDERS_API = `${API_BASE}/v1/orders`;
 
   const [user, setUser] = useState({
@@ -35,6 +35,13 @@ export default function CheckoutContent({
     address: "",
     id: "",
   });
+  const [addressParts, setAddressParts] = useState({
+    houseNo: "",
+    street: "",
+    city: "",
+    area: "",
+  });
+  const [locationLabel, setLocationLabel] = useState("");
 
   useEffect(() => {
     if (!authUser) return;
@@ -63,6 +70,72 @@ export default function CheckoutContent({
   } | null>(null);
 
   // No auto-close for modal; user closes via button.
+  const buildFullAddress = (parts: typeof addressParts) =>
+    sanitizeAddress(
+      [
+        parts.houseNo ? `House No: ${parts.houseNo}` : "",
+        parts.street ? `Street: ${parts.street}` : "",
+        parts.area ? `Area: ${parts.area}` : "",
+        parts.city || "",
+      ]
+        .filter(Boolean)
+        .join(", ")
+    );
+
+  const setAddressAndParts = (nextParts: typeof addressParts) => {
+    setAddressParts(nextParts);
+    setUser((prev) => ({ ...prev, address: buildFullAddress(nextParts) }));
+  };
+
+  const pickFirstString = (...values: unknown[]) => {
+    for (const value of values) {
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+    return "";
+  };
+
+  const toFiniteNumber = (value: unknown, fallback = 0) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  };
+
+  const extractSlipPayload = (payload: any) => {
+    const slip =
+      payload?.summarySlip ||
+      payload?.summary ||
+      payload?.receipt ||
+      payload?.invoice ||
+      {};
+
+    const downloadUrl = pickFirstString(
+      payload?.summarySlipUrl,
+      payload?.summaryUrl,
+      payload?.receiptUrl,
+      payload?.invoiceUrl,
+      payload?.downloadUrl,
+      slip?.summarySlipUrl,
+      slip?.summaryUrl,
+      slip?.receiptUrl,
+      slip?.invoiceUrl,
+      slip?.downloadUrl,
+      slip?.url,
+      slip?.fileUrl
+    );
+
+    const summaryHtml = pickFirstString(
+      payload?.summarySlipHtml,
+      payload?.summaryHtml,
+      payload?.receiptHtml,
+      payload?.invoiceHtml,
+      slip?.summarySlipHtml,
+      slip?.summaryHtml,
+      slip?.receiptHtml,
+      slip?.invoiceHtml,
+      slip?.html
+    );
+
+    return { downloadUrl, summaryHtml, slip };
+  };
 
   const handleDownloadReceipt = async () => {
     if (!placedOrder) return;
@@ -80,17 +153,14 @@ export default function CheckoutContent({
     }
 
     const orderJson: any = placedOrder.serverOrder;
-    let html = "";
+    let html = serverSummaryHtml || "";
 
     const publicLogo = resolvePublicUrl("/images/zaikest-logo.png");
-    if (orderJson) {
+    if (!html && orderJson) {
       html = buildSlipFromOrderJson(orderJson, publicLogo);
     }
     if (!html) {
       html = buildSlipFromSnapshot(placedOrder, publicLogo);
-    }
-    if (!html) {
-      html = serverSummaryHtml || "";
     }
 
     if (html) {
@@ -131,11 +201,22 @@ export default function CheckoutContent({
     const computedTotal =
       payload.totalAmount ??
       payload.total ??
+      (payload.subtotal != null
+        ? Number(payload.subtotal) + Number(payload.deliveryFee ?? 0)
+        : undefined) ??
+      items.reduce(
+        (sum: number, item: any) => sum + (item.total ?? (item.price * item.quantity)),
+        0
+      );
+    const computedSubtotal =
       payload.subtotal ??
       items.reduce(
         (sum: number, item: any) => sum + (item.total ?? (item.price * item.quantity)),
         0
       );
+    const computedDeliveryFee =
+      payload.deliveryFee ??
+      Math.max(0, Number(computedTotal) - Number(computedSubtotal));
 
     return `
       <!doctype html>
@@ -182,7 +263,15 @@ export default function CheckoutContent({
             </table>
 
             <div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 12px; font-size: 14px;">
-              <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span>Subtotal</span>
+                <span>PKR ${computedSubtotal ?? 0}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span>Delivery</span>
+                <span>PKR ${computedDeliveryFee ?? 0}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px; border-top: 1px solid #e5e7eb; padding-top: 8px;">
                 <span>Total</span>
                 <span>PKR ${computedTotal ?? 0}</span>
               </div>
@@ -216,6 +305,8 @@ export default function CheckoutContent({
         `
       )
       .join("");
+    const snapshotSubtotal = snapshot.subtotal ?? 0;
+    const snapshotDeliveryFee = snapshot.deliveryFee ?? 0;
 
     return `
       <!doctype html>
@@ -261,7 +352,15 @@ export default function CheckoutContent({
             </table>
 
             <div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 12px; font-size: 14px;">
-              <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span>Subtotal</span>
+                <span>PKR ${snapshotSubtotal}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span>Delivery</span>
+                <span>PKR ${snapshotDeliveryFee}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px; border-top: 1px solid #e5e7eb; padding-top: 8px;">
                 <span>Total</span>
                 <span>PKR ${snapshot.total ?? 0}</span>
               </div>
@@ -330,27 +429,47 @@ export default function CheckoutContent({
 
       const data = await res.json().catch(() => ({} as { data?: unknown }));
       const serverData: any = data?.data ?? data;
-      const orderJson = serverData?.order ?? serverData;
-      const downloadUrl =
-        serverData?.summaryUrl ||
-        serverData?.receiptUrl ||
-        serverData?.invoiceUrl ||
-        serverData?.downloadUrl;
-      const summaryHtml =
-        serverData?.summaryHtml ||
-        serverData?.receiptHtml ||
-        serverData?.invoiceHtml ||
+      const orderJson = serverData?.order ?? serverData?.data?.order ?? serverData;
+      const { downloadUrl, summaryHtml, slip } = extractSlipPayload(serverData);
+      const resolvedSummaryHtml =
+        summaryHtml ||
         buildSlipFromOrderJson(orderJson, resolvePublicUrl("/images/zaikest-logo.png"));
+
+      const serverSubtotal = Number(
+        orderJson?.subtotal ??
+          serverData?.subtotal ??
+          serverData?.pricing?.subtotal ??
+          slip?.subtotal ??
+          subtotal
+      );
+      const serverDeliveryFee = Number(
+        orderJson?.deliveryFee ??
+          serverData?.deliveryFee ??
+          serverData?.pricing?.deliveryFee ??
+          slip?.deliveryFee ??
+          0
+      );
+      const serverTotal = toFiniteNumber(
+        orderJson?.totalAmount ??
+          orderJson?.total ??
+          serverData?.totalAmount ??
+          serverData?.total ??
+          serverData?.pricing?.totalAmount ??
+          serverData?.pricing?.total ??
+          slip?.totalAmount ??
+          slip?.total,
+        serverSubtotal + serverDeliveryFee
+      );
 
       const orderSnapshot = {
         items: cart,
-        subtotal,
-        deliveryFee,
-        total: totalPrice,
+        subtotal: serverSubtotal,
+        deliveryFee: serverDeliveryFee,
+        total: serverTotal,
         user,
         serverOrder: serverData,
         downloadUrl,
-        summaryHtml,
+        summaryHtml: resolvedSummaryHtml,
       };
 
       setOrderPlaced(true);
@@ -460,8 +579,23 @@ export default function CheckoutContent({
             data = await fetchReverse();
           }
 
+          const address = data?.address || {};
+          const placeName = cleanText(
+            address.amenity ||
+              address.building ||
+              address.shop ||
+              data?.name ||
+              "Current Location"
+          );
+          const nextParts = {
+            houseNo: cleanText(address.house_number || ""),
+            street: cleanText(address.road || address.pedestrian || address.footway || data?.display_name || exactPoint),
+            area: cleanText(address.neighbourhood || address.suburb || address.quarter || address.residential || ""),
+            city: cleanText(address.city || address.town || address.village || address.county || "Karachi"),
+          };
+          setLocationLabel(placeName);
+          setAddressAndParts(nextParts);
           const fullAddress = buildAddressText(data);
-          setUser((prev) => ({ ...prev, address: sanitizeAddress(fullAddress) }));
           try {
             localStorage.setItem(cacheKey, fullAddress);
           } catch {
@@ -481,10 +615,22 @@ export default function CheckoutContent({
             }
           })();
           if (cachedAddress) {
-            setUser((prev) => ({ ...prev, address: sanitizeAddress(cachedAddress) }));
+            setLocationLabel("Saved location");
+            setAddressAndParts({
+              houseNo: "",
+              street: sanitizeAddress(cachedAddress),
+              area: "",
+              city: "Karachi",
+            });
             setError(theme.content.checkoutLocationCachedNotice || "Using last known saved location for this area.");
           } else {
-            setUser((prev) => ({ ...prev, address: exactPoint }));
+            setLocationLabel("Current Location");
+            setAddressAndParts({
+              houseNo: "",
+              street: exactPoint,
+              area: "",
+              city: "Karachi",
+            });
             setError(theme.content.checkoutLocationFallbackError || "Exact address not found. Coordinates were added instead.");
           }
         } finally {
@@ -508,26 +654,36 @@ export default function CheckoutContent({
 
   const containerClass =
     variant === "modal"
-      ? "max-w-5xl mx-auto py-5 sm:py-6 px-3 sm:px-4"
-      : "max-w-6xl mx-auto py-8 sm:py-12 px-3 sm:px-4";
+      ? "w-full py-5 sm:py-6 px-3 sm:px-4"
+      : "w-full py-8 sm:py-12 px-3 sm:px-4";
+  const contentWidthClass = variant === "modal" ? "max-w-5xl mx-auto" : "max-w-6xl mx-auto";
   const cardClass =
     variant === "modal"
       ? "bg-gray-100 border border-gray-200 shadow-lg rounded-2xl p-4 sm:p-5"
-      : "bg-white/90 border border-green-100 shadow-lg rounded-2xl p-4 sm:p-6";
-  const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-200";
-  const inputClassPlain = "w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-200";
+      : "bg-[#e8ebef]/95 border border-[#c5ced6] shadow-[0_8px_24px_rgba(15,23,42,0.14)] rounded-3xl p-4 sm:p-6";
+  const inputClass =
+    "w-full border border-[#9fa9b4] rounded-xl px-4 py-3 bg-[#d8dee5] text-[#1d2329] placeholder:text-[#6f7884]";
+  const inputClassPlain =
+    "w-full border border-[#9fa9b4] rounded-xl px-4 py-3 bg-[#d8dee5] text-[#1d2329] placeholder:text-[#6f7884]";
   const inputGroupClass = "space-y-2";
+  const checkoutBgStyle = {
+    backgroundImage:
+      "url(https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=2000&q=80), url('/images/wide-banner.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+  } as const;
 
   if (cart.length === 0 && !orderPlaced) {
     return (
       <div className={`relative overflow-hidden ${containerClass} text-center`}>
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-55 animate-hero-pan"
-          style={{ backgroundImage: "url(https://source.unsplash.com/KytjZvzXg4c/2000x1400)" }}
+          className="absolute inset-0 bg-cover bg-center opacity-55 animate-mart-pan"
+          style={checkoutBgStyle}
           aria-hidden
         />
-        <div className="absolute inset-0 bg-white/35" aria-hidden />
-        <div className="relative z-10">
+        <div className="absolute inset-0 bg-black/65" aria-hidden />
+        <div className={`relative z-10 ${contentWidthClass}`}>
         <EditableText
           as="h1"
           className="text-2xl font-extrabold text-white"
@@ -561,12 +717,12 @@ export default function CheckoutContent({
         animate={{ opacity: 1 }}
       >
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-55 animate-hero-pan"
-          style={{ backgroundImage: "url(https://source.unsplash.com/G3oLwnxlQUA/2000x1400)" }}
+          className="absolute inset-0 bg-cover bg-center opacity-55 animate-mart-pan"
+          style={checkoutBgStyle}
           aria-hidden
         />
-        <div className="absolute inset-0 bg-white/35" aria-hidden />
-        <div className="relative z-10">
+        <div className="absolute inset-0 bg-black/65" aria-hidden />
+        <div className={`relative z-10 ${contentWidthClass}`}>
         <div
           className={`${
             variant === "modal"
@@ -629,9 +785,7 @@ export default function CheckoutContent({
             <div className="flex justify-between">
               <span>{theme.content.checkoutDeliveryLabel || "Delivery"}</span>
               <span>
-                {placedOrder?.deliveryFee
-                  ? `PKR ${placedOrder.deliveryFee}`
-                  : theme.content.checkoutFreeText || "Free"}
+                PKR {placedOrder?.deliveryFee ?? 200}
               </span>
             </div>
           </div>
@@ -687,12 +841,12 @@ export default function CheckoutContent({
       animate={{ opacity: 1 }}
     >
       <div
-        className="absolute inset-0 bg-cover bg-center opacity-55 animate-hero-pan"
-        style={{ backgroundImage: "url(https://source.unsplash.com/RBI-xCk0c0g/2000x1400)" }}
+        className="absolute inset-0 bg-cover bg-center opacity-55 animate-mart-pan"
+        style={checkoutBgStyle}
         aria-hidden
       />
-      <div className="absolute inset-0 bg-white/35" aria-hidden />
-      <div className="relative z-10">
+      <div className="absolute inset-0 bg-black/65" aria-hidden />
+      <div className={`relative z-10 ${contentWidthClass}`}>
       {variant === "modal" && (orderPlaced || error) && (
         <div
           className={`mb-4 rounded-2xl px-4 py-3 text-sm font-semibold ${
@@ -706,7 +860,7 @@ export default function CheckoutContent({
       )}
       <EditableText
         as="h1"
-        className="text-2xl sm:text-3xl font-bold mb-5 sm:mb-6 text-center text-green-950"
+        className="text-2xl sm:text-3xl font-extrabold mb-5 sm:mb-6 text-center text-white drop-shadow-[0_6px_18px_rgba(0,0,0,0.55)]"
         value={theme.content.checkoutTitle}
         fallback="Checkout"
         editMode={editMode && canManageTheme}
@@ -737,7 +891,7 @@ export default function CheckoutContent({
 
           <div className={inputGroupClass}>
             <label className="text-sm font-medium text-green-900 block">
-              {theme.content.checkoutNameLabel || "Full name"}
+              {(theme.content.checkoutNameLabel || "Full name") + " (required)"}
             </label>
             <input
               value={user.name}
@@ -767,7 +921,7 @@ export default function CheckoutContent({
           <div className={inputGroupClass}>
             <label className="text-sm font-medium text-green-900 flex items-center gap-2">
               <Phone size={16} />
-              {theme.content.checkoutPhoneLabel || "Phone number"}
+              {(theme.content.checkoutPhoneLabel || "Phone number") + " (required)"}
             </label>
             <input
               placeholder={theme.content.checkoutPhonePlaceholder || "Enter phone number"}
@@ -779,10 +933,10 @@ export default function CheckoutContent({
             />
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pt-1">
             <label className="text-sm font-medium text-green-900 flex items-center gap-2">
               <MapPin size={16} />
-              {theme.content.checkoutAddressLabel || "Delivery address"}
+              {(theme.content.checkoutAddressLabel || "Delivery address") + " (required)"}
             </label>
             <button
               type="button"
@@ -795,19 +949,96 @@ export default function CheckoutContent({
                 : theme.content.checkoutUseCurrentLocationText || "Use current location"}
             </button>
           </div>
-          <div className={inputGroupClass}>
-            <textarea
-              placeholder={theme.content.checkoutAddressPlaceholder || "Enter delivery address"}
-              value={user.address}
-              onChange={(e) => setUser({ ...user, address: sanitizeAddress(e.target.value) })}
-              className={`${inputClassPlain} min-h-[110px] resize-none`}
-              disabled={isPlacingOrder}
-              required
-            />
+
+          <div className="rounded-xl border border-[#b8c3cf] bg-[#d9e0e8] p-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-green-900 font-medium">
+              <MapPin size={18} />
+              <span>{locationLabel || "Current Location"}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleUseCurrentLocation}
+              className="inline-flex items-center justify-center rounded-lg bg-[#c7d0db] px-4 py-2 text-sm font-semibold text-[#243243] hover:bg-[#b9c4d1] disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={isLocating || isPlacingOrder}
+            >
+              {isLocating
+                ? theme.content.checkoutGettingLocationText || "Getting location..."
+                : theme.content.checkoutUseCurrentLocationText || "Use current location"}
+            </button>
+          </div>
+
+          <div className="rounded-xl border border-[#b8c3cf] bg-[#edf1f5] p-4 sm:p-5 space-y-3">
+            <h3 className="text-xl font-semibold text-[#1d2329]">Address</h3>
+
+            <div className={inputGroupClass}>
+              <label className="text-sm font-medium text-green-900 block">House No:</label>
+              <input
+                placeholder="e.g. House #5"
+                value={addressParts.houseNo}
+                onChange={(e) =>
+                  setAddressAndParts({
+                    ...addressParts,
+                    houseNo: sanitizeText(e.target.value),
+                  })
+                }
+                className={inputClass}
+                disabled={isPlacingOrder}
+              />
+            </div>
+
+            <div className={inputGroupClass}>
+              <label className="text-sm font-medium text-green-900 block">Street Address</label>
+              <input
+                placeholder="e.g. Street 2, Block A"
+                value={addressParts.street}
+                onChange={(e) =>
+                  setAddressAndParts({
+                    ...addressParts,
+                    street: sanitizeAddress(e.target.value),
+                  })
+                }
+                className={inputClass}
+                disabled={isPlacingOrder}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <select
+                value={addressParts.city}
+                onChange={(e) =>
+                  setAddressAndParts({
+                    ...addressParts,
+                    city: sanitizeText(e.target.value),
+                  })
+                }
+                className={inputClass}
+                disabled={isPlacingOrder}
+                required
+              >
+                <option value="" disabled>
+                  Select city
+                </option>
+                <option value="Karachi">Karachi</option>
+              </select>
+              <input
+                placeholder="Area"
+                value={addressParts.area}
+                onChange={(e) =>
+                  setAddressAndParts({
+                    ...addressParts,
+                    area: sanitizeText(e.target.value),
+                  })
+                }
+                className={inputClass}
+                disabled={isPlacingOrder}
+                required
+              />
+            </div>
           </div>
         </div>
 
-        <div className={`${cardClass} space-y-3 sm:space-y-4`}>
+        <div className={`${cardClass} space-y-4 sm:space-y-5`}>
           <EditableText
             as="h2"
             className="font-semibold text-lg sm:text-xl border-b border-green-100 pb-2 mb-3 sm:mb-4"
@@ -817,31 +1048,47 @@ export default function CheckoutContent({
             onSave={(next) => updateTheme({ content: { checkoutOrderSummaryTitle: next } })}
           />
 
-          {cart.map((item) => (
-            <div key={item._id} className="flex items-start justify-between gap-3 text-sm">
-              <span className="min-w-0 break-words">{item.name} x {item.quantity}</span>
-              <span className="shrink-0">PKR {item.price * item.quantity}</span>
+          <div className="rounded-xl border border-gray-400 bg-gray-200 p-3 sm:p-4">
+            <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-800">
+              Items ({cart.length})
             </div>
-          ))}
-
-          <div className="flex justify-between text-sm text-[#5f6f61] pt-3 sm:pt-4">
-            <span>{theme.content.checkoutSubtotalLabel || "Subtotal"}</span>
-            <span>PKR {subtotal}</span>
+            <div className="space-y-2.5">
+              {cart.map((item) => (
+                <div
+                  key={item._id}
+                  className="flex items-start justify-between gap-3 text-sm border-b border-gray-400 pb-2 last:border-b-0 last:pb-0"
+                >
+                  <span className="min-w-0 break-words text-gray-900">
+                    {item.name} x {item.quantity}
+                  </span>
+                  <span className="shrink-0 font-semibold text-gray-900">
+                    PKR {item.price * item.quantity}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="flex justify-between text-sm text-[#5f6f61]">
-            <span>{theme.content.checkoutDeliveryLabel || "Delivery"}</span>
-            <span>{deliveryFee ? `PKR ${deliveryFee}` : theme.content.checkoutFreeText || "Free"}</span>
-          </div>
+          <div className="rounded-xl border border-gray-500 bg-gray-300 p-3 sm:p-4 space-y-2.5">
+            <div className="flex justify-between text-sm text-gray-800">
+              <span>{theme.content.checkoutSubtotalLabel || "Subtotal"}</span>
+              <span>PKR {subtotal}</span>
+            </div>
 
-          <div className="flex justify-between font-bold text-base sm:text-lg border-t border-green-100 pt-3 mt-3 sm:mt-4">
-            <span>{theme.content.checkoutTotalLabel || "Total"}</span>
-            <span>PKR {totalPrice}</span>
+            <div className="flex justify-between text-sm text-gray-800">
+              <span>{theme.content.checkoutDeliveryLabel || "Delivery"}</span>
+              <span>PKR {previewDeliveryFee}</span>
+            </div>
+
+            <div className="flex justify-between font-extrabold text-base sm:text-lg border-t border-gray-500 pt-2.5 mt-1 text-gray-900">
+              <span>{theme.content.checkoutTotalLabel || "Total"}</span>
+              <span>PKR {totalPrice}</span>
+            </div>
           </div>
 
           <button
             onClick={handlePlaceOrder}
-            className="mt-6 w-full bg-green-700 text-white py-3 rounded-full font-semibold hover:bg-green-800 transition inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-green-700 text-white py-3 rounded-xl font-semibold hover:bg-green-800 transition inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             disabled={isPlacingOrder}
           >
             <CreditCard size={18} />
@@ -851,7 +1098,7 @@ export default function CheckoutContent({
                 {theme.content.checkoutPlacingText || "Placing..."}
               </>
             ) : (
-              (editMode && canManageTheme ? (
+              editMode && canManageTheme ? (
                 <EditableText
                   value={theme.content.checkoutPlaceOrderText}
                   fallback="Place Order"
@@ -860,7 +1107,7 @@ export default function CheckoutContent({
                 />
               ) : (
                 theme.content.checkoutPlaceOrderText || "Place Order"
-              ))
+              )
             )}
           </button>
         </div>

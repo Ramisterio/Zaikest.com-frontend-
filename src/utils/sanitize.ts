@@ -1,7 +1,7 @@
 "use client";
 
 export const sanitizeText = (value: string) =>
-  value.replace(/[<>]/g, "").replace(/\s{2,}/g, " ");
+  value.replace(/[<>]/g, "").replace(/[\t\r\n]+/g, " ").replace(/ {2,}/g, " ");
 
 export const sanitizeEmail = (value: string) =>
   value.replace(/[<>\s]/g, "").trim();
