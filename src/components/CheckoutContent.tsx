@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useCart } from "../context/CartContext";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { CreditCard, MapPin, Phone } from "lucide-react";
+import { CreditCard, MapPin } from "lucide-react";
 import PromoPosters from "./PromoPosters";
 import { sanitizeAddress, sanitizeEmail, sanitizePhone, sanitizeText } from "../utils/sanitize";
 import { useAuth } from "../context/AuthContext";
@@ -982,7 +982,6 @@ export default function CheckoutContent({
 
           <div className={inputGroupClass}>
             <label className="text-sm font-medium text-green-900 flex items-center gap-2">
-              <Phone size={16} />
               {(theme.content.checkoutPhoneLabel || "Phone/WhatsApp") + " (required)"}
             </label>
             <input
