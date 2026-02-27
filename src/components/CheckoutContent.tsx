@@ -642,7 +642,8 @@ export default function CheckoutContent({
             houseNo: cleanText(address.house_number || ""),
             street: cleanText(address.road || address.pedestrian || address.footway || data?.display_name || exactPoint),
             area: cleanText(address.neighbourhood || address.suburb || address.quarter || address.residential || ""),
-            city: cleanText(address.city || address.town || address.village || address.county || "Karachi"),
+            // City must be selected manually from the dropdown for Karachi validation.
+            city: cleanText(addressParts.city),
           };
           setLocationLabel(placeName);
           setAddressAndParts(nextParts);
