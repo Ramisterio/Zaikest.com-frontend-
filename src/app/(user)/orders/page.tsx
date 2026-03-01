@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Download, PackageCheck, Phone } from "lucide-react";
 import { sanitizePhone, sanitizeText } from "../../../utils/sanitize";
 import { API_BASE } from "../../../config/env";
 import { resolvePublicUrl } from "../../../utils/url";
+import { normalizeRemoteUrl, resolveAssetUrl } from "../../../utils/assetUrl";
 import { useTheme } from "../../../context/ThemeContext";
 import EditableText from "../../../components/theme/EditableText";
 
@@ -75,6 +76,7 @@ export default function OrdersPage() {
   const [error, setError] = useState("");
   const [phone, setPhone] = useState("");
   const [orderId, setOrderId] = useState("");
+  const initializedFromQueryRef = useRef(false);
   const { theme, editMode, canManageTheme, updateTheme } = useTheme();
 
   const fetchOrders = async (phoneValue: string, orderIdValue?: string) => {
@@ -84,7 +86,7 @@ export default function OrdersPage() {
       setOrders([]);
       if (!phoneValue.trim()) {
         setError(theme.content.ordersPhoneRequiredError || "Please enter your phone number to view orders.");
-        return;
+        return [];
       }
       const params = new URLSearchParams({ phone: phoneValue.trim() });
       if (orderIdValue?.trim()) params.set("orderId", orderIdValue.trim());
@@ -94,12 +96,16 @@ export default function OrdersPage() {
       if (!res.ok) {
         const json = await res.json().catch(() => null);
         setError(json?.message || theme.content.ordersLoadFailedError || "Failed to load orders. Please try again.");
-        return;
+        return [];
       }
       const json = await res.json();
-      setOrders(json?.data || json?.orders || []);
+      const nextOrders = json?.data || json?.orders || [];
+      const normalized = Array.isArray(nextOrders) ? nextOrders : [];
+      setOrders(normalized);
+      return normalized;
     } catch {
       setError(theme.content.ordersNetworkError || "Network error. Please try again.");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -125,7 +131,12 @@ export default function OrdersPage() {
     logoOverride?: string
   ) => {
     if (!receipt) return "";
-    const logoSrc = logoOverride || resolvePublicUrl("/images/zaikest-logo.png");
+    const companyLogo = resolveAssetUrl(
+      normalizeRemoteUrl(receipt.company?.logo),
+      ""
+    );
+    const logoSrc =
+      logoOverride || companyLogo || resolvePublicUrl("/images/zaikest-logo.png");
     const orderDate = receipt.receiptDate
       ? new Date(receipt.receiptDate).toLocaleString()
       : new Date().toLocaleString();
@@ -241,6 +252,46 @@ export default function OrdersPage() {
       URL.revokeObjectURL(blobUrl);
     }
   };
+
+  useEffect(() => {
+    if (initializedFromQueryRef.current) return;
+    initializedFromQueryRef.current = true;
+    if (typeof window === "undefined") {
+      setLoading(false);
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const phoneParam = sanitizePhone(params.get("phone") || "");
+    const orderIdParam = sanitizeText(params.get("orderId") || "");
+    const shouldDownloadSlip = (params.get("download") || "").toLowerCase() === "slip";
+
+    if (!phoneParam) {
+      setLoading(false);
+      return;
+    }
+
+    setPhone(phoneParam);
+    setOrderId(orderIdParam);
+
+    (async () => {
+      const fetched = await fetchOrders(phoneParam, orderIdParam);
+      if (!shouldDownloadSlip || fetched.length === 0) return;
+      const target = orderIdParam
+        ? fetched.find(
+            (order) => String(order.orderId || order._id || "") === orderIdParam
+          ) || fetched[0]
+        : fetched[0];
+      if (!target) return;
+      if (getDownloadHtml(target) || target.receipt) {
+        await handleDownloadHtml(target);
+        return;
+      }
+      if (getDownloadUrl(target)) {
+        handleDownloadUrl(target);
+      }
+    })();
+  }, []);
 
   const formattedOrders = useMemo(
     () =>

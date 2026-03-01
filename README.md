@@ -8,9 +8,10 @@ Set environment variables first:
 cp .env.example .env.local
 ```
 
-Required variable:
+Required variables:
 
-- `NEXT_PUBLIC_API_URL`: Backend origin URL (example: `https://api.example.com`)
+- `NEXT_PUBLIC_API_URL`: Backend origin URL (example: `https://api.zaikest.com`)
+- `NEXT_PUBLIC_SITE_URL`: Frontend public origin URL (example: `https://zaikest.com`)
 
 Important:
 
