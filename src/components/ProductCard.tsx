@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRef } from "react"
+import Image from "next/image"
 import { motion } from "framer-motion"
 import { Minus, Plus } from "lucide-react"
 import { useCart } from "../context/CartContext"
@@ -41,16 +43,25 @@ export default function ProductCard({
   const fallbackImageSrc = primaryImageSrc
   const [imageSrc, setImageSrc] = useState(primaryImageSrc)
   const [usedFallback, setUsedFallback] = useState(false)
-  const [objectUrl, setObjectUrl] = useState<string | null>(null)
+  const objectUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
     setImageSrc(primaryImageSrc)
     setUsedFallback(false)
-    if (objectUrl) {
-      URL.revokeObjectURL(objectUrl)
-      setObjectUrl(null)
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current)
+      objectUrlRef.current = null
     }
   }, [primaryImageSrc, product._id])
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
+    }
+  }, [])
 
   const handleIncrease = () => {
     if (quantity === 0) addToCart(product)
@@ -79,36 +90,43 @@ export default function ProductCard({
     >
       {/* Image */}
       <div className="relative group">
-        <img
-          src={imageSrc || undefined}
-          alt={product.name}
-          onError={async () => {
-            const imageUrl = normalizeRemoteUrl(product.imageUrl)
-            if (!objectUrl && imageUrl) {
-              try {
-                const res = await fetch(imageUrl, { credentials: "include" })
-                if (res.ok) {
-                  const blob = await res.blob()
-                  const url = URL.createObjectURL(blob)
-                  setObjectUrl(url)
-                  setImageSrc(url)
-                  return
-                }
-              } catch {
-                // fall through to fallback handling
-              }
-            }
-            if (!usedFallback && fallbackImageSrc !== imageSrc) {
-              setImageSrc(fallbackImageSrc)
-              setUsedFallback(true)
-              return
-            }
-            setImageSrc("")
-          }}
-          className={`w-full ${imageFit === "contain" ? "object-contain bg-white" : "object-cover"} transition-transform duration-500 ${
+        <div
+          className={`relative w-full transition-transform duration-500 ${
             isCompact ? "h-32 sm:h-40 md:h-44" : "h-40 sm:h-48 md:h-52"
-          }`}
-        />
+          } ${imageFit === "contain" ? "bg-white" : ""}`}
+        >
+          <Image
+            src={imageSrc || "/images/zaikest-logo.png"}
+            alt={product.name}
+            fill
+            unoptimized
+            sizes="(max-width: 768px) 240px, 320px"
+            onError={async () => {
+              const imageUrl = normalizeRemoteUrl(product.imageUrl)
+              if (!objectUrlRef.current && imageUrl) {
+                try {
+                  const res = await fetch(imageUrl, { credentials: "include" })
+                  if (res.ok) {
+                    const blob = await res.blob()
+                    const url = URL.createObjectURL(blob)
+                    objectUrlRef.current = url
+                    setImageSrc(url)
+                    return
+                  }
+                } catch {
+                  // fall through to fallback handling
+                }
+              }
+              if (!usedFallback && fallbackImageSrc !== imageSrc) {
+                setImageSrc(fallbackImageSrc)
+                setUsedFallback(true)
+                return
+              }
+              setImageSrc("/images/zaikest-logo.png")
+            }}
+            className={`${imageFit === "contain" ? "object-contain" : "object-cover"}`}
+          />
+        </div>
 
         {/* Category Badge */}
         <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { apiPath } from "../config/env";
 import { useAuth } from "./AuthContext";
 
@@ -460,8 +460,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [version, setVersion] = useState<string | number | null>(null);
+  const lastUpdateAtRef = useRef(0);
 
-  const refreshTheme = useCallback(async () => {
+  const refreshTheme = useCallback(async (force = false) => {
+    const startedAt = Date.now();
     setLoading(true);
     try {
       const res = await fetch(apiPath("/v1/theme"), {
@@ -475,6 +477,9 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       const json = await res.json();
       const { serverTheme, nextVersion } = extractThemePayload(json);
       if (res.ok && serverTheme) {
+        if (!force && lastUpdateAtRef.current > startedAt) {
+          return;
+        }
         setTheme(serverTheme as Theme);
         setVersion(nextVersion);
       }
@@ -497,6 +502,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateTheme = useCallback(
     async (patch: ThemePatch) => {
+      lastUpdateAtRef.current = Date.now();
       setTheme((prev) => mergeTheme(prev, patch));
       if (!canManageTheme) return;
       try {
@@ -515,7 +521,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         const json = await res.json();
         if (res.status === 409) {
           console.warn("Theme changed, reloaded latest.");
-          await refreshTheme();
+          await refreshTheme(true);
           return;
         }
         const { serverTheme, nextVersion } = extractThemePayload(json);
@@ -523,10 +529,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
           setTheme(serverTheme as Theme);
           setVersion(nextVersion);
         } else {
-          await refreshTheme();
+          await refreshTheme(true);
         }
       } catch {
-        await refreshTheme();
+        await refreshTheme(true);
       }
     },
     [canManageTheme, refreshTheme, version]

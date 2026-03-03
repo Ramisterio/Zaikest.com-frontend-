@@ -12,6 +12,7 @@ import { API_BASE } from "../config/env";
 import { resolvePublicUrl } from "../utils/url";
 import { useTheme } from "../context/ThemeContext";
 import EditableText from "./theme/EditableText";
+import { downloadPdfFromHtml } from "../utils/pdf";
 
 export default function CheckoutContent({
   variant = "page",
@@ -195,10 +196,10 @@ export default function CheckoutContent({
     const serverDownloadUrl = placedOrder.downloadUrl;
     const serverSummaryHtml = placedOrder.summaryHtml;
 
-    if (serverDownloadUrl) {
+    if (serverDownloadUrl && serverDownloadUrl.toLowerCase().endsWith(".pdf")) {
       const a = document.createElement("a");
       a.href = serverDownloadUrl;
-      a.download = "zaikest-order-summary";
+      a.download = "zaikest-order-summary.pdf";
       a.target = "_blank";
       a.rel = "noopener noreferrer";
       a.click();
@@ -217,13 +218,17 @@ export default function CheckoutContent({
     }
 
     if (html) {
-      const blob = new Blob([html], { type: "text/html" });
-      const url = URL.createObjectURL(blob);
+      await downloadPdfFromHtml(html, "zaikest-order-summary.pdf");
+      return;
+    }
+
+    if (serverDownloadUrl) {
       const a = document.createElement("a");
-      a.href = url;
-      a.download = "zaikest-order-summary.html";
+      a.href = serverDownloadUrl;
+      a.download = "zaikest-order-summary";
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
       a.click();
-      URL.revokeObjectURL(url);
       return;
     }
 

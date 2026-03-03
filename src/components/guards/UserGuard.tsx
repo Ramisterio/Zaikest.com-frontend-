@@ -12,7 +12,7 @@ export default function UserGuard({ children }: { children: React.ReactNode }) {
     if (!loading && !user) {
       router.replace("/login");
     }
-  }, [user, loading]);
+  }, [user, loading, router]);
 
   if (loading) {
     return <p className="p-6">Loading user session...</p>;

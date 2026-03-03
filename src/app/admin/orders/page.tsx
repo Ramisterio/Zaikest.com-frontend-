@@ -5,6 +5,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { API_BASE, SITE_ORIGIN } from "../../../config/env";
 import { normalizeRemoteUrl, resolveAssetUrl } from "../../../utils/assetUrl";
 import { resolvePublicUrl } from "../../../utils/url";
+import { downloadPdfFromHtml } from "../../../utils/pdf";
 
 type OrderItem = {
   name?: string;
@@ -66,7 +67,7 @@ type Order = {
 };
 
 const ORDERS_API = `${API_BASE}/v1/admin/orders`;
-const STATUS_OPTIONS = ["Pending", "Shipped", "Delivered"];
+const STATUS_OPTIONS = ["Pending", "Shipped", "Delivered", "Cancelled"];
 
 export default function OrdersPage() {
   const { user } = useAuth();
@@ -76,6 +77,7 @@ export default function OrdersPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [resolvingLinkId, setResolvingLinkId] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState("");
   const [generatedSlipUrls, setGeneratedSlipUrls] = useState<Record<string, string>>({});
   const createdSlipUrlsRef = useRef<string[]>([]);
   const [pendingStatus, setPendingStatus] = useState<Record<string, string>>({});
@@ -124,6 +126,7 @@ export default function OrdersPage() {
     try {
       setSavingId(orderId);
       setError("");
+      setSuccessMsg("");
       const res = await fetch(`${API_BASE}/v1/admin/orders/${orderId}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -142,6 +145,8 @@ export default function OrdersPage() {
             : order;
         })
       );
+      setSuccessMsg(`Order updated to ${status}.`);
+      window.setTimeout(() => setSuccessMsg(""), 2500);
     } catch (err: any) {
       setError(err.message || "Failed to update order status.");
     } finally {
@@ -165,6 +170,8 @@ export default function OrdersPage() {
             ? "Shipped"
             : order.orderStatus?.toLowerCase() === "delivered"
             ? "Delivered"
+            : order.orderStatus?.toLowerCase() === "cancelled"
+            ? "Cancelled"
             : order.status || "Pending",
         subtotalLabel:
           order.subtotal ??
@@ -406,13 +413,22 @@ export default function OrdersPage() {
   };
 
   const handleDownload = async (order: (typeof rows)[number]) => {
+    const id = order.orderId || order._id || "summary";
+    if (order.receipt) {
+      const html = buildSlipHtmlFromReceipt(order.receipt, id);
+      if (html) {
+        await downloadPdfFromHtml(html, `order-${id}.pdf`);
+        return;
+      }
+    }
+
     const url = await resolveDownloadUrl(order);
     if (!url) return;
     const a = document.createElement("a");
     a.href = url;
     a.target = "_blank";
     a.rel = "noopener noreferrer";
-    a.download = `order-${order.orderId || order._id || "summary"}`;
+    a.download = `order-${id}`;
     a.click();
   };
 
@@ -583,6 +599,11 @@ export default function OrdersPage() {
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
       )}
+      {successMsg && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+          {successMsg}
+        </div>
+      )}
 
       {loading ? (
         <div className="rounded-2xl border bg-white py-16 text-center text-gray-500 shadow-sm">
@@ -635,14 +656,16 @@ export default function OrdersPage() {
                       <div className="mb-2">
                         <span
                           className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                            selectedStatus.toLowerCase() === "delivered"
+                            (order.statusLabel || "").toLowerCase() === "delivered"
                               ? "bg-green-100 text-green-700"
-                              : selectedStatus.toLowerCase() === "shipped"
+                              : (order.statusLabel || "").toLowerCase() === "shipped"
                               ? "bg-sky-100 text-sky-700"
+                              : (order.statusLabel || "").toLowerCase() === "cancelled"
+                              ? "bg-red-100 text-red-700"
                               : "bg-amber-100 text-amber-700"
                           }`}
                         >
-                          {selectedStatus}
+                          {order.statusLabel || "Pending"}
                         </span>
                       </div>
                       <select

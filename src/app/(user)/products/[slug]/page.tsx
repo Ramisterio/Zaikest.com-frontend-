@@ -1,8 +1,9 @@
 "use client"
 
 import { useParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useCart } from "../../../../context/CartContext"
 import { motion } from "framer-motion"
 import { Check } from "lucide-react"
@@ -20,6 +21,8 @@ interface Product {
   description?: string
 }
 
+const PRODUCTS_API = `${API_BASE}/v1/products`
+
 export default function ProductDetailPage() {
   const { slug } = useParams()
   const { addToCart } = useCart()
@@ -28,9 +31,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [imageSrc, setImageSrc] = useState("/images/zaikest-logo.png")
   const [usedFallback, setUsedFallback] = useState(false)
-  const [objectUrl, setObjectUrl] = useState<string | null>(null)
-
-  const PRODUCTS_API = `${API_BASE}/v1/products`
+  const objectUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -47,9 +48,9 @@ export default function ProductDetailPage() {
           const resolved = normalizeRemoteUrl(found.imageUrl)
           setImageSrc(resolved)
           setUsedFallback(false)
-          if (objectUrl) {
-            URL.revokeObjectURL(objectUrl)
-            setObjectUrl(null)
+          if (objectUrlRef.current) {
+            URL.revokeObjectURL(objectUrlRef.current)
+            objectUrlRef.current = null
           }
         }
       } catch {
@@ -61,6 +62,15 @@ export default function ProductDetailPage() {
 
     if (slug) fetchProduct()
   }, [slug])
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = null
+      }
+    }
+  }, [])
 
   if (loading) {
     return (
@@ -92,34 +102,39 @@ export default function ProductDetailPage() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="bg-white/90 rounded-[28px] p-8 shadow-xl border border-green-100"
         >
-          <img
-            src={imageSrc || undefined}
-            alt={product.name}
-            onError={async () => {
-              if (!usedFallback) {
-                const imageUrl = normalizeRemoteUrl(product.imageUrl)
-                if (!objectUrl && imageUrl) {
-                  try {
-                    const res = await fetch(imageUrl, {
-                      credentials: "include",
-                    })
-                    if (res.ok) {
-                      const blob = await res.blob()
-                      const url = URL.createObjectURL(blob)
-                      setObjectUrl(url)
-                      setImageSrc(url)
-                      return
+          <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden">
+            <Image
+              src={imageSrc || "/images/zaikest-logo.png"}
+              alt={product.name}
+              fill
+              unoptimized
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover"
+              onError={async () => {
+                if (!usedFallback) {
+                  const imageUrl = normalizeRemoteUrl(product.imageUrl)
+                  if (!objectUrlRef.current && imageUrl) {
+                    try {
+                      const res = await fetch(imageUrl, {
+                        credentials: "include",
+                      })
+                      if (res.ok) {
+                        const blob = await res.blob()
+                        const url = URL.createObjectURL(blob)
+                        objectUrlRef.current = url
+                        setImageSrc(url)
+                        return
+                      }
+                    } catch {
+                      // fall through to clearing the image
                     }
-                  } catch {
-                    // fall through to clearing the image
                   }
+                  setUsedFallback(true)
                 }
-                setUsedFallback(true)
-              }
-              setImageSrc("")
-            }}
-            className="w-full rounded-2xl object-cover"
-          />
+                setImageSrc("/images/zaikest-logo.png")
+              }}
+            />
+          </div>
         </motion.div>
 
         <motion.div

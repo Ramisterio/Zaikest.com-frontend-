@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Download, PackageCheck, Phone } from "lucide-react";
@@ -10,6 +10,7 @@ import { resolvePublicUrl } from "../../../utils/url";
 import { normalizeRemoteUrl, resolveAssetUrl } from "../../../utils/assetUrl";
 import { useTheme } from "../../../context/ThemeContext";
 import EditableText from "../../../components/theme/EditableText";
+import { downloadPdfFromHtml } from "../../../utils/pdf";
 
 type OrderItem = {
   product?: string;
@@ -79,7 +80,7 @@ export default function OrdersPage() {
   const initializedFromQueryRef = useRef(false);
   const { theme, editMode, canManageTheme, updateTheme } = useTheme();
 
-  const fetchOrders = async (phoneValue: string, orderIdValue?: string) => {
+  const fetchOrders = useCallback(async (phoneValue: string, orderIdValue?: string) => {
     try {
       setLoading(true);
       setError("");
@@ -109,7 +110,7 @@ export default function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [ORDERS_API, theme.content.ordersLoadFailedError, theme.content.ordersNetworkError, theme.content.ordersPhoneRequiredError]);
 
   const getStatusStyle = (status?: string) => {
     const value = (status || "pending").toLowerCase();
@@ -118,14 +119,14 @@ export default function OrdersPage() {
     return "bg-gray-100 text-gray-700";
   };
 
-  const getDownloadUrl = (order: Order) =>
+  const getDownloadUrl = useCallback((order: Order) =>
     order.summarySlipUrl ||
     order.summaryUrl ||
     order.receiptUrl ||
     order.invoiceUrl ||
-    order.downloadUrl;
+    order.downloadUrl, []);
 
-  const buildSlipFromReceipt = (
+  const buildSlipFromReceipt = useCallback((
     receipt: Order["receipt"],
     orderId?: string,
     logoOverride?: string
@@ -212,16 +213,16 @@ export default function OrdersPage() {
         </body>
       </html>
     `;
-  };
+  }, []);
 
-  const getDownloadHtml = (order: Order) =>
+  const getDownloadHtml = useCallback((order: Order) =>
     order.summarySlipHtml ||
     order.summarySlip ||
     order.summaryHtml ||
     order.receiptHtml ||
-    order.invoiceHtml;
+    order.invoiceHtml, []);
 
-  const handleDownloadUrl = (order: Order) => {
+  const handleDownloadUrl = useCallback((order: Order) => {
     const url = getDownloadUrl(order);
 
     if (url) {
@@ -232,9 +233,9 @@ export default function OrdersPage() {
       a.download = `zaikest-order-${order._id || "summary"}`;
       a.click();
     }
-  };
+  }, [getDownloadUrl]);
 
-  const handleDownloadHtml = async (order: Order) => {
+  const handleDownloadHtml = useCallback(async (order: Order) => {
     let html = getDownloadHtml(order);
 
     if (!html && order.receipt) {
@@ -243,15 +244,12 @@ export default function OrdersPage() {
     }
 
     if (html) {
-      const blob = new Blob([html], { type: "text/html" });
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = `zaikest-order-${order._id || "summary"}.html`;
-      a.click();
-      URL.revokeObjectURL(blobUrl);
+      await downloadPdfFromHtml(
+        html,
+        `zaikest-order-${order._id || "summary"}.pdf`
+      );
     }
-  };
+  }, [buildSlipFromReceipt, getDownloadHtml]);
 
   useEffect(() => {
     if (initializedFromQueryRef.current) return;
@@ -291,7 +289,7 @@ export default function OrdersPage() {
         handleDownloadUrl(target);
       }
     })();
-  }, []);
+  }, [fetchOrders, getDownloadHtml, getDownloadUrl, handleDownloadHtml, handleDownloadUrl]);
 
   const formattedOrders = useMemo(
     () =>
@@ -318,7 +316,7 @@ export default function OrdersPage() {
           order.status ||
           theme.content.ordersPendingText || "Pending",
       })),
-    [orders]
+    [orders, theme.content.ordersPendingText, theme.content.ordersRecentText]
   );
 
   return (

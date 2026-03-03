@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { sanitizeText } from "../../../utils/sanitize";
 import { API_BASE } from "../../../config/env";
 
@@ -21,7 +21,7 @@ export default function CategoryManagement() {
   const API_URL = `${API_BASE}/v1/categories`;
 
   /* ================= FETCH CATEGORIES ================= */
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -37,11 +37,11 @@ export default function CategoryManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_URL]);
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [fetchCategories]);
 
   /* ================= ADD CATEGORY ================= */
   const handleAdd = async () => {
