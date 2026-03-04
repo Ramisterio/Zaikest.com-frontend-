@@ -225,14 +225,49 @@ export default function OrdersPage() {
   const handleDownloadUrl = useCallback((order: Order) => {
     const url = getDownloadUrl(order);
 
-    if (url) {
+    if (!url) return;
+    (async () => {
+      try {
+        if (url.toLowerCase().endsWith(".pdf")) {
+          const a = document.createElement("a");
+          a.href = url;
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          a.download = `zaikest-order-${order._id || "summary"}.pdf`;
+          a.click();
+          return;
+        }
+        const res = await fetch(url, { credentials: "include" });
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("pdf")) {
+          const blob = await res.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = blobUrl;
+          a.download = `zaikest-order-${order._id || "summary"}.pdf`;
+          a.click();
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+        const html = await res.text();
+        if (html) {
+          await downloadPdfFromHtml(
+            html,
+            `zaikest-order-${order._id || "summary"}.pdf`,
+            { stripImages: true }
+          );
+          return;
+        }
+      } catch {
+        // fall through to direct open
+      }
       const a = document.createElement("a");
       a.href = url;
       a.target = "_blank";
       a.rel = "noopener noreferrer";
       a.download = `zaikest-order-${order._id || "summary"}`;
       a.click();
-    }
+    })();
   }, [getDownloadUrl]);
 
   const handleDownloadHtml = useCallback(async (order: Order) => {

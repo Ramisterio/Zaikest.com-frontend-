@@ -97,7 +97,7 @@ export default function HomePage() {
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const { categories } = useCategories();
-  const { theme, editMode, canManageTheme, updateTheme } = useTheme();
+  const { theme, loading, editMode, canManageTheme, updateTheme } = useTheme();
 
   const scroll = (direction: "left" | "right") => {
     if (!scrollRef.current) return;
@@ -184,6 +184,21 @@ export default function HomePage() {
     updateTheme({ highlights: next.map(({ title, text }) => ({ title, text })) });
   };
 
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <main className="bg-transparent pt-[var(--nav-h)]">
+          <section className="max-w-7xl mx-auto px-4 pt-8 sm:pt-10 pb-8">
+            <div className="rounded-3xl border border-green-200 bg-black/60 p-10 text-white/90">
+              Loading...
+            </div>
+          </section>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -215,7 +230,7 @@ export default function HomePage() {
                 as="h1"
                 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mt-5"
                 value={theme.content.heroTitle}
-                fallback="Homemade flavors and pantry essentials delivered fast."
+                fallback=""
                 editMode={editMode && canManageTheme}
                 onSave={(next) => updateTheme({ content: { heroTitle: next } })}
                 multiline

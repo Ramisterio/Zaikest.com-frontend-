@@ -6,6 +6,7 @@ import Modal from "../Modal";
 import LoginForm from "../LoginForm";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter } from "next/navigation";
+import { sanitizeInternalRedirect } from "../../utils/urlRoute";
 
 interface LoginModalProps {
   defaultOpen?: boolean;
@@ -33,7 +34,7 @@ export default function LoginModal({ defaultOpen = false }: LoginModalProps) {
 
     // 🔥 3️⃣ Backend-driven redirect
     if (redirectTo) {
-      router.replace(redirectTo);
+      router.replace(sanitizeInternalRedirect(redirectTo));
     }
   };
 
@@ -43,3 +44,6 @@ export default function LoginModal({ defaultOpen = false }: LoginModalProps) {
     </Modal>
   );
 }
+
+
+

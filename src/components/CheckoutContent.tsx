@@ -23,7 +23,7 @@ export default function CheckoutContent({
 }) {
   const { cart, clearCart } = useCart();
   const { user: authUser } = useAuth();
-  const { theme, editMode, canManageTheme, updateTheme } = useTheme();
+  const { theme, loading, editMode, canManageTheme, refreshTheme, updateTheme } = useTheme();
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const previewDeliveryFee = 200;
   const totalPrice = subtotal + previewDeliveryFee;
@@ -43,6 +43,7 @@ export default function CheckoutContent({
     area: "",
   });
   const [locationLabel, setLocationLabel] = useState("");
+  const [themeReady, setThemeReady] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const errorTimerRef = useRef<number | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -67,6 +68,21 @@ export default function CheckoutContent({
       if (errorTimerRef.current) window.clearTimeout(errorTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadLatestTheme = async () => {
+      try {
+        await refreshTheme();
+      } finally {
+        if (mounted) setThemeReady(true);
+      }
+    };
+    loadLatestTheme();
+    return () => {
+      mounted = false;
+    };
+  }, [refreshTheme]);
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -196,14 +212,39 @@ export default function CheckoutContent({
     const serverDownloadUrl = placedOrder.downloadUrl;
     const serverSummaryHtml = placedOrder.summaryHtml;
 
-    if (serverDownloadUrl && serverDownloadUrl.toLowerCase().endsWith(".pdf")) {
-      const a = document.createElement("a");
-      a.href = serverDownloadUrl;
-      a.download = "zaikest-order-summary.pdf";
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.click();
-      return;
+    if (serverDownloadUrl) {
+      try {
+        if (serverDownloadUrl.toLowerCase().endsWith(".pdf")) {
+          const a = document.createElement("a");
+          a.href = serverDownloadUrl;
+          a.download = "zaikest-order-summary.pdf";
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          a.click();
+          return;
+        }
+        const res = await fetch(serverDownloadUrl, { credentials: "include" });
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("pdf")) {
+          const blob = await res.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = blobUrl;
+          a.download = "zaikest-order-summary.pdf";
+          a.click();
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+        const htmlFromUrl = await res.text();
+        if (htmlFromUrl) {
+          await downloadPdfFromHtml(htmlFromUrl, "zaikest-order-summary.pdf", {
+            stripImages: true,
+          });
+          return;
+        }
+      } catch {
+        // fall through to html generation
+      }
     }
 
     const orderJson: any = placedOrder.serverOrder;
@@ -219,16 +260,6 @@ export default function CheckoutContent({
 
     if (html) {
       await downloadPdfFromHtml(html, "zaikest-order-summary.pdf");
-      return;
-    }
-
-    if (serverDownloadUrl) {
-      const a = document.createElement("a");
-      a.href = serverDownloadUrl;
-      a.download = "zaikest-order-summary";
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.click();
       return;
     }
 
@@ -741,6 +772,17 @@ export default function CheckoutContent({
     backgroundRepeat: "no-repeat",
   } as const;
 
+  if (loading || !themeReady) {
+    return (
+      <div className={`relative overflow-hidden ${containerClass}`}>
+        <div className="absolute inset-0 bg-black/65" aria-hidden />
+        <div className={`relative z-10 ${contentWidthClass} text-center py-16 text-white/90`}>
+          Loading checkout...
+        </div>
+      </div>
+    );
+  }
+
   if (cart.length === 0 && !orderPlaced) {
     return (
       <div className={`relative overflow-hidden ${containerClass} text-center`}>
@@ -1203,6 +1245,10 @@ export default function CheckoutContent({
     </motion.div>
   );
 }
+
+
+
+
 
 
 

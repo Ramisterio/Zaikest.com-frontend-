@@ -198,7 +198,7 @@ export const defaultTheme: Theme = {
   },
   content: {
     heroPill: "Zaikest fresh pantry",
-    heroTitle: "Homemade flavors and pantry essentials delivered fast.",
+    heroTitle: "",
     heroSubtitle:
       "Shop daily kitchen favorites, made with care and brought to your door in minutes.",
     heroPrimaryCta: "Start shopping",
@@ -209,8 +209,8 @@ export const defaultTheme: Theme = {
     featuredCategoriesLabel: "Categories",
     featuredProductsLabel: "Products",
     announcement: "",
-    navbarDeliveryText: "Delivery in 20-30 min in select areas",
-    navbarDealsText: "Fresh deals every day",
+    navbarDeliveryText: "",
+    navbarDealsText: "",
     navbarHomeText: "Home",
     navbarDeliverToText: "Deliver to",
     navbarDeliverToLocation: "Home",

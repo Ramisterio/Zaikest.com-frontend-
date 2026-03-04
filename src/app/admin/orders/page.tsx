@@ -417,13 +417,35 @@ export default function OrdersPage() {
     if (order.receipt) {
       const html = buildSlipHtmlFromReceipt(order.receipt, id);
       if (html) {
-        await downloadPdfFromHtml(html, `order-${id}.pdf`);
+        await downloadPdfFromHtml(html, `order-${id}.pdf`, { stripImages: true });
         return;
       }
     }
 
     const url = await resolveDownloadUrl(order);
     if (!url) return;
+    try {
+      const res = await fetch(url, { credentials: "include" });
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("pdf")) {
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = `order-${id}.pdf`;
+        a.click();
+        URL.revokeObjectURL(blobUrl);
+        return;
+      }
+      const html = await res.text();
+      if (html) {
+        await downloadPdfFromHtml(html, `order-${id}.pdf`, { stripImages: true });
+        return;
+      }
+    } catch {
+      // fall through to direct download
+    }
+
     const a = document.createElement("a");
     a.href = url;
     a.target = "_blank";

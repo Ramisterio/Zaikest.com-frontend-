@@ -14,6 +14,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useCategories } from "../context/CategoriesContext";
 import CartDrawer from "./CartDrawer";
 import { sanitizeSearch } from "../utils/sanitize";
+import { sanitizeInternalRedirect } from "../utils/urlRoute";
 import EditableText from "./theme/EditableText";
 
 export default function Navbar() {
@@ -105,7 +106,7 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-2 text-[11px] sm:text-xs font-semibold">
           <EditableText
             value={theme?.content?.navbarDeliveryText || ""}
-            fallback="Delivery in 20-30 min in select areas"
+            fallback=""
             editMode={editMode && canManageTheme}
             onSave={(next) => updateTheme({ content: { navbarDeliveryText: next } })}
             className="inline-block leading-tight break-words max-w-full flex-1 text-left pr-2"
@@ -114,7 +115,7 @@ export default function Navbar() {
             <Sparkles size={12} />
             <EditableText
               value={theme?.content?.navbarDealsText || ""}
-              fallback="Fresh deals every day"
+              fallback=""
               editMode={editMode && canManageTheme}
               onSave={(next) => updateTheme({ content: { navbarDealsText: next } })}
               className="inline-block break-words"
@@ -354,7 +355,7 @@ export default function Navbar() {
         <LoginForm
           onLoginSuccess={({ redirectTo }) => {
             setOpenLogin(false);
-            router.replace(redirectTo || "/");
+            router.replace(sanitizeInternalRedirect(redirectTo));
           }}
           onRegisterClick={() => {
             setOpenLogin(false);
