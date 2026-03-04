@@ -6,11 +6,9 @@ import { motion } from "framer-motion";
 import { Download, PackageCheck, Phone } from "lucide-react";
 import { sanitizePhone, sanitizeText } from "../../../utils/sanitize";
 import { API_BASE } from "../../../config/env";
-import { resolvePublicUrl } from "../../../utils/url";
-import { normalizeRemoteUrl, resolveAssetUrl } from "../../../utils/assetUrl";
 import { useTheme } from "../../../context/ThemeContext";
 import EditableText from "../../../components/theme/EditableText";
-import { downloadPdfFromHtml } from "../../../utils/pdf";
+import { downloadOrderSlipPdf } from "../../../utils/orderSlip";
 
 type OrderItem = {
   product?: string;
@@ -126,108 +124,18 @@ export default function OrdersPage() {
     order.invoiceUrl ||
     order.downloadUrl, []);
 
-  const buildSlipFromReceipt = useCallback((
-    receipt: Order["receipt"],
-    orderId?: string,
-    logoOverride?: string
-  ) => {
-    if (!receipt) return "";
-    const companyLogo = resolveAssetUrl(
-      normalizeRemoteUrl(receipt.company?.logo),
-      ""
-    );
-    const logoSrc =
-      logoOverride || companyLogo || resolvePublicUrl("/images/zaikest-logo.png");
-    const orderDate = receipt.receiptDate
-      ? new Date(receipt.receiptDate).toLocaleString()
-      : new Date().toLocaleString();
-
-    const rows = (receipt.items || [])
-      .map(
-        (item) => `
-          <tr>
-            <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">${item.name}</td>
-            <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-            <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">PKR ${item.total ?? (item.price || 0) * (item.quantity ?? 1)}</td>
-          </tr>
-        `
-      )
-      .join("");
-
-    return `
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>${receipt.company?.name || "Zaikest"} Receipt Slip</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; margin: 24px; color: #111827;">
-          <div style="max-width: 720px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-              <div style="display: flex; align-items: center; gap: 12px;">
-                ${logoSrc ? `<img src="${logoSrc}" alt="${receipt.company?.name || "Zaikest"}" style="width: 48px; height: 48px; object-fit: contain;" />` : ""}
-                <div>
-                  <div style="font-size: 20px; font-weight: 700;">${receipt.company?.name || "Zaikest"}</div>
-                  <div style="font-size: 12px; color: #6b7280;">Receipt Slip</div>
-                </div>
-              </div>
-              <div style="text-align: right; font-size: 12px; color: #6b7280;">
-                <div>${orderDate}</div>
-                <div>Order ID: ${orderId || receipt.receiptId || ""}</div>
-              </div>
-            </div>
-
-            <div style="background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;">
-              <div style="font-weight: 600; margin-bottom: 6px;">Customer</div>
-              <div>${receipt.customer?.name || ""}</div>
-              <div>${receipt.customer?.phone || ""}</div>
-              <div>${receipt.customer?.address || ""}</div>
-              <div>${receipt.customer?.city || ""}</div>
-            </div>
-
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-              <thead>
-                <tr>
-                  <th style="text-align: left; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">Item</th>
-                  <th style="text-align: center; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">Qty</th>
-                  <th style="text-align: right; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rows}
-              </tbody>
-            </table>
-
-            <div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 12px; font-size: 14px;">
-              <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px;">
-                <span>Total</span>
-                <span>PKR ${receipt.totalAmount ?? (receipt.subtotal ?? 0)}</span>
-              </div>
-            </div>
-
-            <div style="margin-top: 18px; font-size: 12px; color: #6b7280; text-align: center;">
-              <div>Contact: ${receipt.company?.email || ""} | ${receipt.company?.phone || ""}</div>
-              <div>${receipt.company?.address || ""}</div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-  }, []);
-
-  const getDownloadHtml = useCallback((order: Order) =>
-    order.summarySlipHtml ||
-    order.summarySlip ||
-    order.summaryHtml ||
-    order.receiptHtml ||
-    order.invoiceHtml, []);
-
   const handleDownloadUrl = useCallback((order: Order) => {
     const url = getDownloadUrl(order);
+    const slipOrderId = String(order.orderId || order._id || "").trim();
+    const slipPhone = (order.customer?.phone || phone || "").trim();
 
-    if (!url) return;
     (async () => {
       try {
+        if (slipOrderId) {
+          await downloadOrderSlipPdf(slipOrderId, slipPhone || undefined);
+          return;
+        }
+        if (!url) return;
         if (url.toLowerCase().endsWith(".pdf")) {
           const a = document.createElement("a");
           a.href = url;
@@ -249,18 +157,10 @@ export default function OrdersPage() {
           URL.revokeObjectURL(blobUrl);
           return;
         }
-        const html = await res.text();
-        if (html) {
-          await downloadPdfFromHtml(
-            html,
-            `zaikest-order-${order._id || "summary"}.pdf`,
-            { stripImages: true }
-          );
-          return;
-        }
       } catch {
         // fall through to direct open
       }
+      if (!url) return;
       const a = document.createElement("a");
       a.href = url;
       a.target = "_blank";
@@ -268,23 +168,7 @@ export default function OrdersPage() {
       a.download = `zaikest-order-${order._id || "summary"}`;
       a.click();
     })();
-  }, [getDownloadUrl]);
-
-  const handleDownloadHtml = useCallback(async (order: Order) => {
-    let html = getDownloadHtml(order);
-
-    if (!html && order.receipt) {
-      const publicLogo = resolvePublicUrl("/images/zaikest-logo.png");
-      html = buildSlipFromReceipt(order.receipt, order.orderId || order._id, publicLogo);
-    }
-
-    if (html) {
-      await downloadPdfFromHtml(
-        html,
-        `zaikest-order-${order._id || "summary"}.pdf`
-      );
-    }
-  }, [buildSlipFromReceipt, getDownloadHtml]);
+  }, [getDownloadUrl, phone]);
 
   useEffect(() => {
     if (initializedFromQueryRef.current) return;
@@ -316,15 +200,11 @@ export default function OrdersPage() {
           ) || fetched[0]
         : fetched[0];
       if (!target) return;
-      if (getDownloadHtml(target) || target.receipt) {
-        await handleDownloadHtml(target);
-        return;
-      }
-      if (getDownloadUrl(target)) {
+      if (String(target.orderId || target._id || "").trim() || getDownloadUrl(target)) {
         handleDownloadUrl(target);
       }
     })();
-  }, [fetchOrders, getDownloadHtml, getDownloadUrl, handleDownloadHtml, handleDownloadUrl]);
+  }, [fetchOrders, getDownloadUrl, handleDownloadUrl]);
 
   const formattedOrders = useMemo(
     () =>
@@ -530,22 +410,13 @@ export default function OrdersPage() {
                     {theme.content.ordersTotalLabel || "Total"}: PKR {order.totalLabel ?? 0}
                   </div>
                 </div>
-                {getDownloadUrl(order) && (
+                {(String(order.orderId || order._id || "").trim() || getDownloadUrl(order)) && (
                   <button
                     onClick={() => handleDownloadUrl(order)}
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-700 text-white text-xs font-bold hover:bg-green-800 transition"
                   >
                     <Download size={16} />
                     {theme.content.ordersDownloadReceiptText || "Download receipt"}
-                  </button>
-                )}
-                {(getDownloadHtml(order) || order.receipt) && (
-                  <button
-                    onClick={() => handleDownloadHtml(order)}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-700 text-white text-xs font-bold hover:bg-green-800 transition"
-                  >
-                    <Download size={16} />
-                    {theme.content.ordersDownloadSlipText || "Download slip"}
                   </button>
                 )}
               </div>

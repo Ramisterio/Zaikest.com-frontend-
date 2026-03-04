@@ -1,11 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import { API_BASE, SITE_ORIGIN } from "../../../config/env";
-import { normalizeRemoteUrl, resolveAssetUrl } from "../../../utils/assetUrl";
-import { resolvePublicUrl } from "../../../utils/url";
-import { downloadPdfFromHtml } from "../../../utils/pdf";
+import { downloadOrderSlipPdf } from "../../../utils/orderSlip";
 
 type OrderItem = {
   name?: string;
@@ -78,8 +76,6 @@ export default function OrdersPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [resolvingLinkId, setResolvingLinkId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
-  const [generatedSlipUrls, setGeneratedSlipUrls] = useState<Record<string, string>>({});
-  const createdSlipUrlsRef = useRef<string[]>([]);
   const [pendingStatus, setPendingStatus] = useState<Record<string, string>>({});
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -110,13 +106,6 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
-
-  useEffect(() => {
-    const urlsAtMount = createdSlipUrlsRef.current;
-    return () => {
-      urlsAtMount.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, []);
 
   const updateStatus = async (orderId: string, status: string) => {
     if (!canUpdateStatus) {
@@ -201,7 +190,6 @@ export default function OrdersPage() {
 
   const getDownloadUrl = (order: Order) =>
     pickFirstString(
-      generatedSlipUrls[order.orderId || order._id || ""],
       order.summarySlipUrl,
       order.summaryUrl,
       order.receiptUrl,
@@ -237,104 +225,7 @@ export default function OrdersPage() {
       order.invoice?.fileUrl
     );
 
-  const buildSlipHtmlFromReceipt = (receipt: any, fallbackOrderId?: string) => {
-    if (!receipt) return "";
-    const orderId = receipt.receiptId || fallbackOrderId || "";
-    const companyLogo = resolveAssetUrl(normalizeRemoteUrl(receipt.company?.logo), "");
-    const logoSrc = companyLogo || resolvePublicUrl("/images/zaikest-logo.png");
-    const orderDate = receipt.receiptDate
-      ? new Date(receipt.receiptDate).toLocaleString()
-      : new Date().toLocaleString();
-    const items = Array.isArray(receipt.items) ? receipt.items : [];
-    const rowsHtml = items
-      .map(
-        (item: any) => `
-          <tr>
-            <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">${item.name || "Item"}</td>
-            <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity ?? 1}</td>
-            <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">PKR ${item.total ?? (item.price || 0) * (item.quantity ?? 1)}</td>
-          </tr>
-        `
-      )
-      .join("");
-
-    return `
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>${receipt.company?.name || "Zaikest"} Receipt Slip</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; margin: 24px; color: #111827;">
-          <div style="max-width: 720px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-              <div style="display: flex; align-items: center; gap: 12px;">
-                ${logoSrc ? `<img src="${logoSrc}" alt="${receipt.company?.name || "Zaikest"}" style="width: 48px; height: 48px; object-fit: contain;" />` : ""}
-                <div>
-                  <div style="font-size: 20px; font-weight: 700;">${receipt.company?.name || "Zaikest"}</div>
-                  <div style="font-size: 12px; color: #6b7280;">Order Summary Slip</div>
-                </div>
-              </div>
-              <div style="text-align: right; font-size: 12px; color: #6b7280;">
-                <div>${orderDate}</div>
-                <div>Order ID: ${orderId}</div>
-              </div>
-            </div>
-
-            <div style="background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;">
-              <div style="font-weight: 600; margin-bottom: 6px;">Customer</div>
-              <div>${receipt.customer?.name || ""}</div>
-              <div>${receipt.customer?.phone || ""}</div>
-              <div>${receipt.customer?.address || ""}</div>
-              <div>${receipt.customer?.city || ""}</div>
-            </div>
-
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-              <thead>
-                <tr>
-                  <th style="text-align: left; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">Item</th>
-                  <th style="text-align: center; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">Qty</th>
-                  <th style="text-align: right; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>${rowsHtml}</tbody>
-            </table>
-
-            <div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 12px; font-size: 14px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                <span>Subtotal</span>
-                <span>PKR ${receipt.subtotal ?? 0}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span>Delivery</span>
-                <span>PKR ${receipt.deliveryFee ?? 0}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px; border-top: 1px solid #e5e7eb; padding-top: 8px;">
-                <span>Total</span>
-                <span>PKR ${receipt.totalAmount ?? receipt.subtotal ?? 0}</span>
-              </div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-  };
-
-  const ensureGeneratedSlipUrl = (payload: any, orderKey: string) => {
-    if (!orderKey) return "";
-    if (generatedSlipUrls[orderKey]) return generatedSlipUrls[orderKey];
-    const receipt = payload?.receipt || payload?.order?.receipt;
-    if (!receipt) return "";
-    const html = buildSlipHtmlFromReceipt(receipt, payload?.orderId || payload?._id || orderKey);
-    if (!html) return "";
-    const blob = new Blob([html], { type: "text/html" });
-    const blobUrl = URL.createObjectURL(blob);
-    createdSlipUrlsRef.current.push(blobUrl);
-    setGeneratedSlipUrls((prev) => ({ ...prev, [orderKey]: blobUrl }));
-    return blobUrl;
-  };
-
-  const extractDownloadFromPayload = (payload: any, orderKey: string) => {
+  const extractDownloadFromPayload = (payload: any) => {
     const slip = payload?.summarySlip || payload?.summary || payload?.receipt || payload?.invoice || {};
     const direct = pickFirstString(
       payload?.summarySlipUrl,
@@ -350,7 +241,7 @@ export default function OrdersPage() {
       slip?.url,
       slip?.fileUrl
     );
-    return direct || ensureGeneratedSlipUrl(payload, orderKey);
+    return direct;
   };
 
   const resolveDownloadUrl = async (order: (typeof rows)[number]) => {
@@ -368,12 +259,11 @@ export default function OrdersPage() {
           const candidateId = String(candidate?.orderId || candidate?._id || "");
           return candidateId === idCandidate;
         });
-        const exactUrl = extractDownloadFromPayload(exact, idCandidate);
+          const exactUrl = extractDownloadFromPayload(exact);
         if (exactUrl) return exactUrl;
       }
       for (const candidate of list) {
-        const candidateId = String(candidate?.orderId || candidate?._id || idCandidate);
-        const url = extractDownloadFromPayload(candidate, candidateId);
+        const url = extractDownloadFromPayload(candidate);
         if (url) return url;
       }
       return "";
@@ -414,11 +304,12 @@ export default function OrdersPage() {
 
   const handleDownload = async (order: (typeof rows)[number]) => {
     const id = order.orderId || order._id || "summary";
-    if (order.receipt) {
-      const html = buildSlipHtmlFromReceipt(order.receipt, id);
-      if (html) {
-        await downloadPdfFromHtml(html, `order-${id}.pdf`, { stripImages: true });
+    if (id && id !== "summary") {
+      try {
+        await downloadOrderSlipPdf(id, undefined, true);
         return;
+      } catch {
+        // Continue to backend direct-link fallback below.
       }
     }
 
@@ -435,11 +326,6 @@ export default function OrdersPage() {
         a.download = `order-${id}.pdf`;
         a.click();
         URL.revokeObjectURL(blobUrl);
-        return;
-      }
-      const html = await res.text();
-      if (html) {
-        await downloadPdfFromHtml(html, `order-${id}.pdf`, { stripImages: true });
         return;
       }
     } catch {

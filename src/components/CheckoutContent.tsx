@@ -10,9 +10,10 @@ import { sanitizeAddress, sanitizeEmail, sanitizePhone, sanitizeText } from "../
 import { useAuth } from "../context/AuthContext";
 import { API_BASE } from "../config/env";
 import { resolvePublicUrl } from "../utils/url";
+import { normalizeRemoteUrl, resolveAssetUrl } from "../utils/assetUrl";
 import { useTheme } from "../context/ThemeContext";
 import EditableText from "./theme/EditableText";
-import { downloadPdfFromHtml } from "../utils/pdf";
+import { useOrderSlip } from "../hooks/useOrderSlip";
 
 export default function CheckoutContent({
   variant = "page",
@@ -97,8 +98,18 @@ export default function CheckoutContent({
     user: typeof user;
     serverOrder?: unknown;
     downloadUrl?: string;
-    summaryHtml?: string;
   } | null>(null);
+  const {
+    loading: isSlipDownloading,
+    error: slipDownloadError,
+    clearError: clearSlipDownloadError,
+    downloadPdf: downloadSlipPdf,
+  } = useOrderSlip();
+
+  useEffect(() => {
+    if (!slipDownloadError) return;
+    setError(slipDownloadError);
+  }, [slipDownloadError]);
 
   // No auto-close for modal; user closes via button.
   const buildFullAddress = (parts: typeof addressParts) =>
@@ -207,69 +218,186 @@ export default function CheckoutContent({
     return { downloadUrl, summaryHtml, slip };
   };
 
+  const getOrderIdForSlip = (serverOrder: any) =>
+    pickFirstString(
+      serverOrder?.order?._id,
+      serverOrder?.order?.id,
+      serverOrder?.order?.orderId,
+      serverOrder?._id,
+      serverOrder?.id,
+      serverOrder?.orderId,
+      serverOrder?.data?.order?._id,
+      serverOrder?.data?.order?.id,
+      serverOrder?.data?.order?.orderId
+    );
+
   const handleDownloadReceipt = async () => {
     if (!placedOrder) return;
-    const serverDownloadUrl = placedOrder.downloadUrl;
-    const serverSummaryHtml = placedOrder.summaryHtml;
+    let serverDownloadUrl = placedOrder.downloadUrl || "";
+    const orderId = getOrderIdForSlip(placedOrder.serverOrder as any);
+    const guestPhone = pickFirstString(placedOrder.user.phone);
+    const pdfFilename = `zaikest-order-summary-${orderId || "slip"}.pdf`;
 
-    if (serverDownloadUrl) {
+    if (orderId) {
       try {
-        if (serverDownloadUrl.toLowerCase().endsWith(".pdf")) {
-          const a = document.createElement("a");
-          a.href = serverDownloadUrl;
-          a.download = "zaikest-order-summary.pdf";
-          a.target = "_blank";
-          a.rel = "noopener noreferrer";
-          a.click();
-          return;
-        }
-        const res = await fetch(serverDownloadUrl, { credentials: "include" });
-        const contentType = res.headers.get("content-type") || "";
-        if (contentType.includes("pdf")) {
-          const blob = await res.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = blobUrl;
-          a.download = "zaikest-order-summary.pdf";
-          a.click();
-          URL.revokeObjectURL(blobUrl);
-          return;
-        }
-        const htmlFromUrl = await res.text();
-        if (htmlFromUrl) {
-          await downloadPdfFromHtml(htmlFromUrl, "zaikest-order-summary.pdf", {
-            stripImages: true,
-          });
-          return;
-        }
+        clearSlipDownloadError();
+        await downloadSlipPdf(orderId, guestPhone || undefined);
+        return;
       } catch {
-        // fall through to html generation
+        // Fall through to backend direct URL if present.
       }
     }
 
-    const orderJson: any = placedOrder.serverOrder;
-    let html = serverSummaryHtml || "";
-
-    const publicLogo = resolvePublicUrl("/images/zaikest-logo.png");
-    if (!html && orderJson) {
-      html = buildSlipFromOrderJson(orderJson, publicLogo);
+    if (serverDownloadUrl) {
+      try {
+        const res = await fetch(serverDownloadUrl, { credentials: "include" });
+        if (!res.ok) throw new Error("download failed");
+        const contentType = (res.headers.get("content-type") || "").toLowerCase();
+        const isPdf = contentType.includes("application/pdf");
+        if (isPdf) {
+          const blob = await res.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const anchor = document.createElement("a");
+          anchor.href = blobUrl;
+          anchor.download = pdfFilename;
+          anchor.click();
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+      } catch {
+        // Ignore and surface backend slip availability message below.
+      }
     }
-    if (!html) {
-      html = buildSlipFromSnapshot(placedOrder, publicLogo);
-    }
 
-    if (html) {
-      await downloadPdfFromHtml(html, "zaikest-order-summary.pdf");
-      return;
-    }
+    setError("Backend summary slip PDF is not available yet for this order.");
+  };
 
-    setError("Order slip is not available from the server yet.");
+  const formatPkr = (value: unknown) => `PKR ${toFiniteNumber(value, 0).toLocaleString("en-PK")}`;
+
+  const buildSlipShell = ({
+    companyName,
+    logoSrc,
+    orderDate,
+    orderId,
+    customerLines,
+    rowsHtml,
+    subtotal,
+    deliveryFee,
+    total,
+    contactLine,
+    addressLine,
+  }: {
+    companyName: string;
+    logoSrc?: string;
+    orderDate: string;
+    orderId?: string;
+    customerLines: string[];
+    rowsHtml: string;
+    subtotal: unknown;
+    deliveryFee: unknown;
+    total: unknown;
+    contactLine?: string;
+    addressLine?: string;
+  }) => {
+    const safeCustomerLines = customerLines.filter(Boolean);
+    const safeOrderId = orderId?.trim();
+    const footerMeta = [contactLine, addressLine].filter(Boolean).join(" | ");
+
+    return `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${companyName} Order Summary</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+        </head>
+        <body style="font-family: 'Segoe UI', Tahoma, Arial, sans-serif; margin: 0; background: radial-gradient(circle at top, #f1f8f3, #eaf1f8 58%); color: #0f172a; padding: 22px;">
+          <div style="max-width: 760px; margin: 0 auto;">
+            <div style="border-radius: 24px; overflow: hidden; box-shadow: 0 22px 48px rgba(15,23,42,0.16); border: 1px solid #d7e1ee; background: #ffffff;">
+              <div style="padding: 24px 26px; background: linear-gradient(125deg, #0e4f35 0%, #19744f 60%, #205f87 100%); color: #ffffff;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px;">
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    ${logoSrc ? `<div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(255,255,255,0.96); display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(15,23,42,0.08);"><img src="${logoSrc}" alt="${companyName}" style="width: 44px; height: 44px; object-fit: contain;" /></div>` : ""}
+                    <div>
+                      <div style="font-size: 22px; line-height: 1.2; font-weight: 800; letter-spacing: 0.2px;">${companyName}</div>
+                      <div style="font-size: 12px; opacity: 0.9; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px;">Order Summary Slip</div>
+                    </div>
+                  </div>
+                  <div style="text-align: right; font-size: 12px; line-height: 1.55; opacity: 0.95;">
+                    <div>${orderDate}</div>
+                    ${safeOrderId ? `<div style="font-weight: 700;">Order ID: ${safeOrderId}</div>` : ""}
+                  </div>
+                </div>
+              </div>
+
+              <div style="padding: 22px 24px 24px;">
+                <div style="display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 16px;">
+                  <div style="flex: 1 1 280px; min-width: 240px; border: 1px solid #d8e3f0; background: #f8fbff; border-radius: 14px; padding: 14px 16px;">
+                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.9px; color: #53657d; font-weight: 700; margin-bottom: 8px;">Customer Details</div>
+                    ${safeCustomerLines.map((line) => `<div style="font-size: 13px; color: #0f172a; margin-bottom: 4px;">${line}</div>`).join("")}
+                  </div>
+                  <div style="flex: 0 1 210px; min-width: 180px; border: 1px solid #d8e3f0; background: #f4f8f6; border-radius: 14px; padding: 14px 16px;">
+                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.9px; color: #506070; font-weight: 700; margin-bottom: 8px;">Payment Summary</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;"><span>Subtotal</span><span style="font-weight: 700;">${formatPkr(subtotal)}</span></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px;"><span>Delivery</span><span style="font-weight: 700;">${formatPkr(deliveryFee)}</span></div>
+                  </div>
+                </div>
+
+                <div style="border: 1px solid #dbe5f1; border-radius: 14px; overflow: hidden;">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead>
+                      <tr style="background: #ecf2fa; color: #20324a;">
+                        <th style="text-align: left; padding: 11px 14px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.7px;">Item</th>
+                        <th style="text-align: center; padding: 11px 10px; width: 90px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.7px;">Qty</th>
+                        <th style="text-align: right; padding: 11px 14px; width: 140px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.7px;">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${rowsHtml}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style="margin-top: 16px; border: 1px solid #d2deec; border-radius: 14px; background: #f8fbff; padding: 14px 16px;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #304258;">
+                    <span>Subtotal</span>
+                    <strong>${formatPkr(subtotal)}</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; color: #304258;">
+                    <span>Delivery</span>
+                    <strong>${formatPkr(deliveryFee)}</strong>
+                  </div>
+                    <div style="display: flex; justify-content: space-between; border-top: 1px solid #cad8ea; padding-top: 10px; font-size: 17px; font-weight: 800; color: #0e6a45;">
+                      <span>Total Payable</span>
+                      <span>${formatPkr(total)}</span>
+                    </div>
+                  </div>
+
+                <div style="margin-top: 14px; text-align: center; font-size: 11px; color: #64748b; line-height: 1.55;">
+                  ${footerMeta || "Thank you for ordering with us."}
+                </div>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
   };
 
   const buildSlipFromOrderJson = (order: any, logoOverride?: string) => {
     if (!order) return "";
     const payload = order?.order ?? order;
-    const logoSrc = logoOverride || resolvePublicUrl("/images/zaikest-logo.png");
+    const companyLogo = resolveAssetUrl(
+      normalizeRemoteUrl(
+        pickFirstString(
+          payload?.company?.logo,
+          payload?.receipt?.company?.logo,
+          payload?.summarySlip?.company?.logo
+        )
+      ),
+      ""
+    );
+    const logoSrc = logoOverride || companyLogo || resolvePublicUrl("/images/zaikest-logo1.png");
     const orderDate = payload.orderDate
       ? new Date(payload.orderDate).toLocaleString()
       : new Date().toLocaleString();
@@ -279,9 +407,9 @@ export default function CheckoutContent({
       .map(
         (item: any) => `
           <tr>
-            <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">${item.name}</td>
-            <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-            <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">PKR ${item.total ?? (item.price * item.quantity)}</td>
+            <td style="padding: 12px 14px; border-bottom: 1px solid #e5edf7;">${item.name || "Item"}</td>
+            <td style="padding: 12px 10px; border-bottom: 1px solid #e5edf7; text-align: center;">${toFiniteNumber(item.quantity, 0)}</td>
+            <td style="padding: 12px 14px; border-bottom: 1px solid #e5edf7; text-align: right; font-weight: 700;">${formatPkr(item.total ?? (item.price * item.quantity))}</td>
           </tr>
         `
       )
@@ -307,73 +435,24 @@ export default function CheckoutContent({
       payload.deliveryFee ??
       Math.max(0, Number(computedTotal) - Number(computedSubtotal));
 
-    return `
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>${payload.company?.name || "Zaikest"} Order Summary</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; margin: 24px; color: #111827;">
-          <div style="max-width: 720px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-              <div style="display: flex; align-items: center; gap: 12px;">
-                ${logoSrc ? `<img src="${logoSrc}" alt="${payload.company?.name || "Zaikest"}" style="width: 48px; height: 48px; object-fit: contain;" />` : ""}
-                <div>
-                  <div style="font-size: 20px; font-weight: 700;">${payload.company?.name || "Zaikest"}</div>
-                  <div style="font-size: 12px; color: #6b7280;">Order Summary Slip</div>
-                </div>
-              </div>
-              <div style="text-align: right; font-size: 12px; color: #6b7280;">
-                <div>${orderDate}</div>
-                <div>Order ID: ${payload.orderId || ""}</div>
-              </div>
-            </div>
-
-            <div style="background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;">
-              <div style="font-weight: 600; margin-bottom: 6px;">Customer</div>
-              <div>${payload.customer?.name || ""}</div>
-              <div>${payload.customer?.phone || ""}</div>
-              <div>${payload.customer?.address || ""}</div>
-              <div>${payload.customer?.city || ""}</div>
-            </div>
-
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-              <thead>
-                <tr>
-                  <th style="text-align: left; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">Item</th>
-                  <th style="text-align: center; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">Qty</th>
-                  <th style="text-align: right; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rows}
-              </tbody>
-            </table>
-
-            <div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 12px; font-size: 14px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                <span>Subtotal</span>
-                <span>PKR ${computedSubtotal ?? 0}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span>Delivery</span>
-                <span>PKR ${computedDeliveryFee ?? 0}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px; border-top: 1px solid #e5e7eb; padding-top: 8px;">
-                <span>Total</span>
-                <span>PKR ${computedTotal ?? 0}</span>
-              </div>
-            </div>
-
-            <div style="margin-top: 18px; font-size: 12px; color: #6b7280; text-align: center;">
-              <div>Contact: ${payload.company?.email || ""} | ${payload.company?.phone || ""}</div>
-              <div>${payload.company?.address || ""}</div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+    return buildSlipShell({
+      companyName: payload.company?.name || "Zaikest",
+      logoSrc,
+      orderDate,
+      orderId: payload.orderId || payload.id || payload._id,
+      customerLines: [
+        payload.customer?.name || "",
+        payload.customer?.phone || "",
+        payload.customer?.address || "",
+        payload.customer?.city || "",
+      ],
+      rowsHtml: rows,
+      subtotal: computedSubtotal ?? 0,
+      deliveryFee: computedDeliveryFee ?? 0,
+      total: computedTotal ?? 0,
+      contactLine: [payload.company?.email, payload.company?.phone].filter(Boolean).join(" | "),
+      addressLine: payload.company?.address || "",
+    });
   };
 
   const buildSlipFromSnapshot = (
@@ -381,15 +460,26 @@ export default function CheckoutContent({
     logoOverride?: string
   ) => {
     if (!snapshot) return "";
-    const logoSrc = logoOverride || resolvePublicUrl("/images/zaikest-logo.png");
+    const orderPayload = (snapshot.serverOrder as any)?.order ?? snapshot.serverOrder ?? {};
+    const companyLogo = resolveAssetUrl(
+      normalizeRemoteUrl(
+        pickFirstString(
+          orderPayload?.company?.logo,
+          orderPayload?.receipt?.company?.logo,
+          orderPayload?.summarySlip?.company?.logo
+        )
+      ),
+      ""
+    );
+    const logoSrc = logoOverride || companyLogo || resolvePublicUrl("/images/zaikest-logo1.png");
     const orderDate = new Date().toLocaleString();
     const rows = (snapshot.items || [])
       .map(
         (item: any) => `
           <tr>
-            <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">${item.name}</td>
-            <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
-            <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: right;">PKR ${item.total ?? (item.price * item.quantity)}</td>
+            <td style="padding: 12px 14px; border-bottom: 1px solid #e5edf7;">${item.name || "Item"}</td>
+            <td style="padding: 12px 10px; border-bottom: 1px solid #e5edf7; text-align: center;">${toFiniteNumber(item.quantity, 0)}</td>
+            <td style="padding: 12px 14px; border-bottom: 1px solid #e5edf7; text-align: right; font-weight: 700;">${formatPkr(item.total ?? (item.price * item.quantity))}</td>
           </tr>
         `
       )
@@ -397,67 +487,23 @@ export default function CheckoutContent({
     const snapshotSubtotal = snapshot.subtotal ?? 0;
     const snapshotDeliveryFee = snapshot.deliveryFee ?? 0;
 
-    return `
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>Zaikest Order Summary</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; margin: 24px; color: #111827;">
-          <div style="max-width: 720px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; padding: 24px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-              <div style="display: flex; align-items: center; gap: 12px;">
-                ${logoSrc ? `<img src="${logoSrc}" alt="Zaikest" style="width: 48px; height: 48px; object-fit: contain;" />` : ""}
-                <div>
-                  <div style="font-size: 20px; font-weight: 700;">Zaikest</div>
-                  <div style="font-size: 12px; color: #6b7280;">Order Summary Slip</div>
-                </div>
-              </div>
-              <div style="text-align: right; font-size: 12px; color: #6b7280;">
-                <div>${orderDate}</div>
-              </div>
-            </div>
-
-            <div style="background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;">
-              <div style="font-weight: 600; margin-bottom: 6px;">Customer</div>
-              <div>${snapshot.user.name || ""}</div>
-              <div>${snapshot.user.phone || ""}</div>
-              <div>${snapshot.user.address || ""}</div>
-              <div>${snapshot.user.email || ""}</div>
-            </div>
-
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-              <thead>
-                <tr>
-                  <th style="text-align: left; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">Item</th>
-                  <th style="text-align: center; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">Qty</th>
-                  <th style="text-align: right; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rows}
-              </tbody>
-            </table>
-
-            <div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 12px; font-size: 14px;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                <span>Subtotal</span>
-                <span>PKR ${snapshotSubtotal}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span>Delivery</span>
-                <span>PKR ${snapshotDeliveryFee}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 16px; border-top: 1px solid #e5e7eb; padding-top: 8px;">
-                <span>Total</span>
-                <span>PKR ${snapshot.total ?? 0}</span>
-              </div>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+    return buildSlipShell({
+      companyName: "Zaikest",
+      logoSrc,
+      orderDate,
+      customerLines: [
+        snapshot.user.name || "",
+        snapshot.user.phone || "",
+        snapshot.user.address || "",
+        snapshot.user.email || "",
+      ],
+      rowsHtml: rows,
+      subtotal: snapshotSubtotal,
+      deliveryFee: snapshotDeliveryFee,
+      total: snapshot.total ?? 0,
+      contactLine: snapshot.user.email || "",
+      addressLine: snapshot.user.address || "",
+    });
   };
 
   const handlePlaceOrder = async () => {
@@ -517,10 +563,7 @@ export default function CheckoutContent({
       const data = await res.json().catch(() => ({} as { data?: unknown }));
       const serverData: any = data?.data ?? data;
       const orderJson = serverData?.order ?? serverData?.data?.order ?? serverData;
-      const { downloadUrl, summaryHtml, slip } = extractSlipPayload(serverData);
-      const resolvedSummaryHtml =
-        summaryHtml ||
-        buildSlipFromOrderJson(orderJson, resolvePublicUrl("/images/zaikest-logo.png"));
+      const { downloadUrl, slip } = extractSlipPayload(serverData);
 
       const serverSubtotal = Number(
         orderJson?.subtotal ??
@@ -556,7 +599,6 @@ export default function CheckoutContent({
         user,
         serverOrder: serverData,
         downloadUrl,
-        summaryHtml: resolvedSummaryHtml,
       };
 
       setOrderPlaced(true);
@@ -771,6 +813,21 @@ export default function CheckoutContent({
     backgroundPosition: "center",
     backgroundRepeat: "no-repeat",
   } as const;
+  const placedOrderPayload = (placedOrder?.serverOrder as any)?.order ?? (placedOrder?.serverOrder as any) ?? {};
+  const placedCompanyName =
+    pickFirstString(
+      placedOrderPayload?.company?.name,
+      placedOrderPayload?.receipt?.company?.name
+    ) || "Zaikest";
+  const placedCompanyLogo = resolveAssetUrl(
+    normalizeRemoteUrl(
+      pickFirstString(
+        placedOrderPayload?.company?.logo,
+        placedOrderPayload?.receipt?.company?.logo
+      )
+    ),
+    resolvePublicUrl("/images/zaikest-logo1.png")
+  );
 
   if (loading || !themeReady) {
     return (
@@ -835,73 +892,86 @@ export default function CheckoutContent({
         <div
           className={`${
             variant === "modal"
-              ? "bg-gray-100 border border-gray-200 shadow-2xl rounded-3xl p-5 sm:p-7"
-              : "bg-white/90 border border-green-100 shadow-2xl rounded-3xl p-5 sm:p-8"
-          } text-center`}
+              ? "bg-gray-100 border border-gray-200 shadow-2xl rounded-3xl p-4 sm:p-6"
+              : "bg-white/95 border border-[#d5e4dd] shadow-[0_22px_56px_rgba(15,23,42,0.25)] rounded-3xl p-4 sm:p-7"
+          }`}
         >
-          <motion.h1
-            className="text-2xl sm:text-3xl font-bold text-green-700 mb-2"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <EditableText
-              value={theme.content.checkoutConfirmedTitle}
-              fallback="Order Confirmed"
-              editMode={editMode && canManageTheme}
-              onSave={(next) => updateTheme({ content: { checkoutConfirmedTitle: next } })}
-            />
-          </motion.h1>
-
-          <EditableText
-            as="p"
-            className="text-sm sm:text-base text-[#5f6f61] mb-5 sm:mb-6"
-            value={theme.content.checkoutConfirmedSubtitle}
-            fallback="Thank you for shopping with Zaikest"
-            editMode={editMode && canManageTheme}
-            onSave={(next) => updateTheme({ content: { checkoutConfirmedSubtitle: next } })}
-            multiline
-          />
-
-          <div className="text-left bg-green-50 rounded-2xl p-3 sm:p-4 mb-4 sm:mb-5 text-sm sm:text-base space-y-1">
-            <p>
-              <strong>{theme.content.checkoutNameLabel || "Full name"}:</strong> {placedOrder?.user.name}
-            </p>
-            <p>
-              <strong>{theme.content.checkoutEmailLabel || "Email address"}:</strong> {placedOrder?.user.email}
-            </p>
-            <p>
-              <strong>{theme.content.checkoutPhoneLabel || "Phone/WhatsApp"}:</strong> {placedOrder?.user.phone}
-            </p>
-            <p>
-              <strong>{theme.content.checkoutAddressLabel || "Complete delivery address"}:</strong> {placedOrder?.user.address}
-            </p>
-          </div>
-
-          <div className="text-left space-y-2 mb-4">
-            {placedOrder?.items.map((item) => (
-              <div key={item._id} className="flex items-start justify-between gap-3 text-sm">
-                <span className="min-w-0 break-words">{item.name} x {item.quantity}</span>
-                <span className="shrink-0">PKR {item.price * item.quantity}</span>
+          <div className="overflow-hidden rounded-2xl border border-[#d4e2db] bg-[#f7fbf8]">
+            <div className="bg-gradient-to-r from-[#0f5132] via-[#17724b] to-[#1f5f86] px-4 sm:px-6 py-4 sm:py-5 text-white">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-white/95 p-2">
+                    <img
+                      src={placedCompanyLogo}
+                      alt={placedCompanyName}
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/80">
+                      {theme.content.checkoutConfirmedTitle || "Order Confirmed"}
+                    </p>
+                    <p className="text-lg sm:text-xl font-extrabold">{placedCompanyName}</p>
+                  </div>
+                </div>
+                <p className="text-xs sm:text-sm text-white/90">
+                  {new Date().toLocaleDateString()}
+                </p>
               </div>
-            ))}
-          </div>
-
-          <div className="text-left text-sm text-[#5f6f61] border-t border-green-100 pt-3 mb-4 space-y-1.5">
-            <div className="flex justify-between">
-              <span>{theme.content.checkoutSubtotalLabel || "Subtotal"}</span>
-              <span>PKR {placedOrder?.subtotal ?? 0}</span>
+              <EditableText
+                as="p"
+                className="mt-3 text-sm sm:text-base text-white/95"
+                value={theme.content.checkoutConfirmedSubtitle}
+                fallback="Thank you for shopping with Zaikest"
+                editMode={editMode && canManageTheme}
+                onSave={(next) => updateTheme({ content: { checkoutConfirmedSubtitle: next } })}
+                multiline
+              />
             </div>
-            <div className="flex justify-between">
-              <span>{theme.content.checkoutDeliveryLabel || "Delivery"}</span>
-              <span>
-                PKR {placedOrder?.deliveryFee ?? 200}
-              </span>
-            </div>
-          </div>
 
-          <div className="flex justify-between font-bold text-lg border-t border-green-100 pt-3 mb-6">
-            <span>{theme.content.checkoutTotalLabel || "Total"}</span>
-            <span>PKR {placedOrder?.total ?? 0}</span>
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-5">
+                <div className="rounded-xl border border-[#d7e4ee] bg-[#f3f8fd] p-3 sm:p-4 text-left text-sm text-[#213146] space-y-1.5">
+                  <p><strong>{theme.content.checkoutNameLabel || "Full name"}:</strong> {placedOrder?.user.name || "-"}</p>
+                  <p><strong>{theme.content.checkoutEmailLabel || "Email address"}:</strong> {placedOrder?.user.email || "-"}</p>
+                  <p><strong>{theme.content.checkoutPhoneLabel || "Phone/WhatsApp"}:</strong> {placedOrder?.user.phone || "-"}</p>
+                  <p><strong>{theme.content.checkoutAddressLabel || "Complete delivery address"}:</strong> {placedOrder?.user.address || "-"}</p>
+                </div>
+
+                <div className="rounded-xl border border-[#d9e4dc] bg-[#f1f8f3] p-3 sm:p-4 text-left">
+                  <p className="text-xs uppercase tracking-[0.14em] font-semibold text-[#4a5f56] mb-2">Order Amount</p>
+                  <div className="space-y-2 text-sm text-[#26403a]">
+                    <div className="flex items-center justify-between">
+                      <span>{theme.content.checkoutSubtotalLabel || "Subtotal"}</span>
+                      <span className="font-semibold">{formatPkr(placedOrder?.subtotal ?? 0)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>{theme.content.checkoutDeliveryLabel || "Delivery"}</span>
+                      <span className="font-semibold">{formatPkr(placedOrder?.deliveryFee ?? 200)}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-[#cadecf] pt-2 text-base font-extrabold text-[#0f5f3f]">
+                      <span>{theme.content.checkoutTotalLabel || "Total"}</span>
+                      <span>{formatPkr(placedOrder?.total ?? 0)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-[#d7e4ee] bg-white overflow-hidden mb-5">
+                <div className="grid grid-cols-[1fr_auto] gap-3 px-3 sm:px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] bg-[#eaf2fa] text-[#334a62]">
+                  <span>Items ({placedOrder?.items.length || 0})</span>
+                  <span>Amount</span>
+                </div>
+                <div className="divide-y divide-[#e6eef7]">
+                  {placedOrder?.items.map((item) => (
+                    <div key={item._id} className="grid grid-cols-[1fr_auto] gap-3 px-3 sm:px-4 py-3 text-sm text-[#1f324a]">
+                      <span className="min-w-0 break-words">{item.name} x {item.quantity}</span>
+                      <span className="shrink-0 font-semibold">{formatPkr(item.price * item.quantity)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 sm:justify-center">
@@ -924,17 +994,20 @@ export default function CheckoutContent({
             <button
               onClick={handleDownloadReceipt}
               className="inline-flex items-center justify-center bg-white border border-green-200 text-green-900 px-6 py-3 rounded-full font-semibold hover:border-green-400 transition w-full sm:w-auto"
+              disabled={isSlipDownloading}
             >
-              {editMode && canManageTheme ? (
-                <EditableText
-                  value={theme.content.checkoutDownloadSlipText}
-                  fallback="Download Summary Slip"
-                  editMode={true}
-                  onSave={(next) => updateTheme({ content: { checkoutDownloadSlipText: next } })}
-                />
-              ) : (
-                theme.content.checkoutDownloadSlipText || "Download Summary Slip"
-              )}
+              {isSlipDownloading
+                ? "Preparing PDF..."
+                : editMode && canManageTheme ? (
+                    <EditableText
+                      value={theme.content.checkoutDownloadSlipText}
+                      fallback="Download Summary Slip"
+                      editMode={true}
+                      onSave={(next) => updateTheme({ content: { checkoutDownloadSlipText: next } })}
+                    />
+                  ) : (
+                    theme.content.checkoutDownloadSlipText || "Download Summary Slip"
+                  )}
             </button>
           </div>
         </div>

@@ -1,7 +1,7 @@
 export const downloadPdfFromHtml = async (
   html: string,
   filename: string,
-  options?: { stripImages?: boolean }
+  options?: { stripImages?: boolean; forcePlainText?: boolean }
 ) => {
   if (typeof window === "undefined") return;
   if (!html.trim()) return;
@@ -34,12 +34,44 @@ export const downloadPdfFromHtml = async (
       // ignore
     }
   });
-  container.append(...Array.from(content.childNodes));
+  if (options?.forcePlainText) {
+    const pre = document.createElement("pre");
+    pre.style.whiteSpace = "pre-wrap";
+    pre.style.wordBreak = "break-word";
+    pre.style.fontFamily = "Arial, sans-serif";
+    pre.style.fontSize = "13px";
+    pre.style.lineHeight = "1.5";
+    pre.textContent =
+      (content.textContent || "").trim() ||
+      "Order summary slip is available but content could not be rendered.";
+    container.appendChild(pre);
+  } else {
+    container.append(...Array.from(content.childNodes));
+  }
   document.body.appendChild(container);
   await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+  await Promise.all(
+    Array.from(container.querySelectorAll("img")).map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          const image = img as HTMLImageElement;
+          if (image.complete && image.naturalWidth > 0) {
+            resolve();
+            return;
+          }
+          const timeoutId = window.setTimeout(() => resolve(), 3000);
+          const done = () => {
+            window.clearTimeout(timeoutId);
+            resolve();
+          };
+          image.onload = done;
+          image.onerror = done;
+        })
+    )
+  );
 
   try {
-    const blob: Blob = await html2pdf()
+    let blob: Blob = await html2pdf()
       .from(container)
       .set({
         margin: 10,
@@ -56,29 +88,49 @@ export const downloadPdfFromHtml = async (
       })
       .outputPdf("blob");
 
+    // If render is unexpectedly tiny/blank, retry with a plain-text fallback
+    // to guarantee the downloaded PDF contains slip details.
     if (blob.size < 1000) {
-      const iframe = document.createElement("iframe");
-      iframe.style.position = "fixed";
-      iframe.style.right = "0";
-      iframe.style.bottom = "0";
-      iframe.style.width = "0";
-      iframe.style.height = "0";
-      iframe.style.border = "0";
-      document.body.appendChild(iframe);
-      const doc = iframe.contentWindow?.document;
-      if (doc) {
-        doc.open();
-        doc.write(html);
-        doc.close();
-        iframe.onload = () => {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-          document.body.removeChild(iframe);
-        };
-      } else {
-        document.body.removeChild(iframe);
+      const fallbackContainer = document.createElement("div");
+      fallbackContainer.style.position = "absolute";
+      fallbackContainer.style.left = "-9999px";
+      fallbackContainer.style.top = "0";
+      fallbackContainer.style.width = "794px";
+      fallbackContainer.style.padding = "24px";
+      fallbackContainer.style.background = "#ffffff";
+      fallbackContainer.style.color = "#111111";
+
+      const plain = (content.textContent || "").trim();
+      const pre = document.createElement("pre");
+      pre.style.whiteSpace = "pre-wrap";
+      pre.style.wordBreak = "break-word";
+      pre.style.fontFamily = "Arial, sans-serif";
+      pre.style.fontSize = "13px";
+      pre.style.lineHeight = "1.5";
+      pre.textContent = plain || "Order summary slip is available but content could not be rendered.";
+      fallbackContainer.appendChild(pre);
+      document.body.appendChild(fallbackContainer);
+
+      try {
+        blob = await html2pdf()
+          .from(fallbackContainer)
+          .set({
+            margin: 10,
+            filename,
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: "#ffffff",
+              windowWidth: 794,
+              windowHeight: fallbackContainer.scrollHeight,
+              imageTimeout: 15000,
+            },
+            jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
+          })
+          .outputPdf("blob");
+      } finally {
+        document.body.removeChild(fallbackContainer);
       }
-      return;
     }
 
     const url = URL.createObjectURL(blob);
