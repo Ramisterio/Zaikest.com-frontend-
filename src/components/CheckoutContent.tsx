@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "../context/CartContext";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { CreditCard, MapPin } from "lucide-react";
 import PromoPosters from "./PromoPosters";
@@ -885,10 +886,13 @@ export default function CheckoutContent({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-white/95 p-2">
-                    <img
+                    <Image
                       src={placedCompanyLogo}
                       alt={placedCompanyName}
+                      width={48}
+                      height={48}
                       className="h-full w-full object-contain"
+                      unoptimized
                     />
                   </div>
                   <div>
