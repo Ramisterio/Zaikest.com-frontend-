@@ -66,6 +66,8 @@ type Order = {
 
 const ORDERS_API = `${API_BASE}/v1/admin/orders`;
 const STATUS_OPTIONS = ["Pending", "Shipped", "Delivered", "Cancelled"];
+const ADMIN_DATA_CHANGE_KEY = "zaikest:admin:data-change-ts";
+const ADMIN_DATA_CHANGE_EVENT = "zaikest:admin-order-status-updated";
 
 export default function OrdersPage() {
   const { user } = useAuth();
@@ -134,6 +136,12 @@ export default function OrdersPage() {
             : order;
         })
       );
+      try {
+        window.localStorage.setItem(ADMIN_DATA_CHANGE_KEY, String(Date.now()));
+      } catch {
+        // Ignore storage failures.
+      }
+      window.dispatchEvent(new Event(ADMIN_DATA_CHANGE_EVENT));
       setSuccessMsg(`Order updated to ${status}.`);
       window.setTimeout(() => setSuccessMsg(""), 2500);
     } catch (err: any) {

@@ -449,6 +449,17 @@ const extractThemePayload = (json: any) => {
   return { serverTheme, nextVersion };
 };
 
+const THEME_CACHE_KEY = "zaikest:theme-cache:v1";
+
+const writeThemeCache = (theme: Theme, version: string | number | null) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(THEME_CACHE_KEY, JSON.stringify({ theme, version }));
+  } catch {
+    // Ignore cache write errors.
+  }
+};
+
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const canManageTheme = useMemo(
@@ -461,6 +472,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [editMode, setEditMode] = useState(false);
   const [version, setVersion] = useState<string | number | null>(null);
   const lastUpdateAtRef = useRef(0);
+
 
   const refreshTheme = useCallback(async (force = false) => {
     const startedAt = Date.now();
@@ -480,8 +492,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         if (!force && lastUpdateAtRef.current > startedAt) {
           return;
         }
-        setTheme(serverTheme as Theme);
+        const nextTheme = serverTheme as Theme;
+        setTheme(nextTheme);
         setVersion(nextVersion);
+        writeThemeCache(nextTheme, nextVersion);
       }
     } catch {
       // keep current theme on error
@@ -526,8 +540,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         }
         const { serverTheme, nextVersion } = extractThemePayload(json);
         if (res.ok && serverTheme) {
-          setTheme(serverTheme as Theme);
+          const nextTheme = serverTheme as Theme;
+          setTheme(nextTheme);
           setVersion(nextVersion);
+          writeThemeCache(nextTheme, nextVersion);
         } else {
           await refreshTheme(true);
         }
@@ -559,3 +575,4 @@ export const useTheme = () => {
   }
   return ctx;
 };
+

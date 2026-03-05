@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { API_BASE } from "../../../config/env";
 
 type SummaryTotals = {
@@ -19,6 +19,8 @@ type SummaryBarItem = {
 
 const SUMMARY_API = `${API_BASE}/v1/admin/dashboard/summary`;
 const ORDERS_API = `${API_BASE}/v1/admin/orders`;
+const ADMIN_DATA_CHANGE_KEY = "zaikest:admin:data-change-ts";
+const ADMIN_DATA_CHANGE_EVENT = "zaikest:admin-order-status-updated";
 
 type OrderItem = {
   quantity?: number;
@@ -49,49 +51,68 @@ export default function AdminDashboard() {
   >("week");
   const [anchorDate, setAnchorDate] = useState(() => new Date());
 
+  const fetchSummary = useCallback(async () => {
+    try {
+      setSummaryLoading(true);
+      setSummaryError("");
+      const res = await fetch(SUMMARY_API, { credentials: "include" });
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        setSummaryError(json?.message || "Failed to load dashboard summary.");
+        return;
+      }
+      const json = await res.json();
+      setTotals(json?.totals || {});
+    } catch {
+      setSummaryError("Network error. Please try again.");
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, []);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      setOrdersLoading(true);
+      setOrdersError("");
+      const res = await fetch(ORDERS_API, { credentials: "include" });
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        setOrdersError(json?.message || "Failed to load orders.");
+        return;
+      }
+      const json = await res.json();
+      const extracted = json?.orders || json?.data?.orders || json?.data || [];
+      setOrders(Array.isArray(extracted) ? extracted : [extracted]);
+    } catch {
+      setOrdersError("Network error. Please try again.");
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchSummary = async () => {
-      try {
-        setSummaryLoading(true);
-        setSummaryError("");
-        const res = await fetch(SUMMARY_API, { credentials: "include" });
-        if (!res.ok) {
-          const json = await res.json().catch(() => null);
-          setSummaryError(json?.message || "Failed to load dashboard summary.");
-          return;
-        }
-        const json = await res.json();
-        setTotals(json?.totals || {});
-      } catch {
-        setSummaryError("Network error. Please try again.");
-      } finally {
-        setSummaryLoading(false);
-      }
-    };
-
-    const fetchOrders = async () => {
-      try {
-        setOrdersLoading(true);
-        setOrdersError("");
-        const res = await fetch(ORDERS_API, { credentials: "include" });
-        if (!res.ok) {
-          const json = await res.json().catch(() => null);
-          setOrdersError(json?.message || "Failed to load orders.");
-          return;
-        }
-        const json = await res.json();
-        const extracted = json?.orders || json?.data?.orders || json?.data || [];
-        setOrders(Array.isArray(extracted) ? extracted : [extracted]);
-      } catch {
-        setOrdersError("Network error. Please try again.");
-      } finally {
-        setOrdersLoading(false);
-      }
-    };
-
     fetchSummary();
     fetchOrders();
-  }, []);
+  }, [fetchSummary, fetchOrders]);
+
+  useEffect(() => {
+    const refreshDashboard = () => {
+      fetchSummary();
+      fetchOrders();
+    };
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== ADMIN_DATA_CHANGE_KEY) return;
+      refreshDashboard();
+    };
+
+    window.addEventListener(ADMIN_DATA_CHANGE_EVENT, refreshDashboard);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener(ADMIN_DATA_CHANGE_EVENT, refreshDashboard);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [fetchSummary, fetchOrders]);
 
   const statCards = [
     {
