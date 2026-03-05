@@ -24,7 +24,7 @@ export default function CheckoutContent({
 }) {
   const { cart, clearCart } = useCart();
   const { user: authUser } = useAuth();
-  const { theme, loading, editMode, canManageTheme, refreshTheme, updateTheme } = useTheme();
+  const { theme, loading, editMode, canManageTheme, updateTheme } = useTheme();
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const previewDeliveryFee = 200;
   const totalPrice = subtotal + previewDeliveryFee;
@@ -44,7 +44,6 @@ export default function CheckoutContent({
     area: "",
   });
   const [locationLabel, setLocationLabel] = useState("");
-  const [themeReady, setThemeReady] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const errorTimerRef = useRef<number | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -69,21 +68,6 @@ export default function CheckoutContent({
       if (errorTimerRef.current) window.clearTimeout(errorTimerRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    const loadLatestTheme = async () => {
-      try {
-        await refreshTheme();
-      } finally {
-        if (mounted) setThemeReady(true);
-      }
-    };
-    loadLatestTheme();
-    return () => {
-      mounted = false;
-    };
-  }, [refreshTheme]);
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -829,7 +813,7 @@ export default function CheckoutContent({
     resolvePublicUrl("/images/zaikest-logo1.png")
   );
 
-  if (loading || !themeReady) {
+  if (loading) {
     return (
       <div className={`relative overflow-hidden ${containerClass}`}>
         <div className="absolute inset-0 bg-black/65" aria-hidden />
