@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Script from "next/script";
 import { AuthProvider } from "../context/AuthContext";
 import { CartProvider } from "../context/CartContext";
 import { ThemeProvider } from "../context/ThemeContext";
@@ -11,6 +12,7 @@ import ThemeReadyGate from "../components/ThemeReadyGate";
 import "./globals.css";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+
   useEffect(() => {
     const blockedTypes = new Set([
       "button",
@@ -38,13 +40,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       if (target.disabled || target.readOnly) return;
 
       event.preventDefault();
+
       const value = target.value;
       const start = target.selectionStart ?? value.length;
       const end = target.selectionEnd ?? value.length;
+
       const nextValue = `${value.slice(0, start)} ${value.slice(end)}`;
+
       target.value = nextValue;
       target.selectionStart = start + 1;
       target.selectionEnd = start + 1;
+
       target.dispatchEvent(new Event("input", { bubbles: true }));
     };
 
@@ -55,12 +61,36 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+
+        {/* Meta Pixel Code */}
+        <Script
+          id="meta-pixel"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              !function(f,b,e,v,n,t,s)
+              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+              n.queue=[];t=b.createElement(e);t.async=!0;
+              t.src=v;s=b.getElementsByTagName(e)[0];
+              s.parentNode.insertBefore(t,s)}(window, document,'script',
+              'https://connect.facebook.net/en_US/fbevents.js');
+              fbq('init', '1357503302801249');
+              fbq('track', 'PageView');
+            `,
+          }}
+        />
+
         <AuthProvider>
           <ThemeProvider>
             <ThemeReadyGate>
               <CategoriesProvider>
                 <CartProvider>
+
                   {children}
+
+                  {/* WhatsApp Button */}
                   <a
                     href="https://wa.me/923020284408"
                     target="_blank"
@@ -70,11 +100,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   >
                     <FaWhatsapp className="h-7 w-7" />
                   </a>
+
                 </CartProvider>
               </CategoriesProvider>
             </ThemeReadyGate>
           </ThemeProvider>
         </AuthProvider>
+
+        {/* Meta Pixel NoScript */}
+        <noscript>
+          <img
+            height="1"
+            width="1"
+            style={{ display: "none" }}
+            src="https://www.facebook.com/tr?id=1357503302801249&ev=PageView&noscript=1"
+          />
+        </noscript>
+
       </body>
     </html>
   );
