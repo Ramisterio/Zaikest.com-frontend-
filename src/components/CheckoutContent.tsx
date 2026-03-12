@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Script from "next/script";
 import { useCart } from "../context/CartContext";
 import Link from "next/link";
 import Image from "next/image";
@@ -23,6 +24,7 @@ export default function CheckoutContent({
   variant?: "page" | "modal";
   onRequestClose?: () => void;
 }) {
+  const META_PIXEL_ID = "1357503302801249";
   const { cart, clearCart } = useCart();
   const { user: authUser } = useAuth();
   const { theme, loading, editMode, canManageTheme, updateTheme } = useTheme();
@@ -75,6 +77,7 @@ export default function CheckoutContent({
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const trackedOrderPlacedRef = useRef(false);
   const [placedOrder, setPlacedOrder] = useState<{
     items: typeof cart;
     subtotal: number;
@@ -95,6 +98,14 @@ export default function CheckoutContent({
     if (!slipDownloadError) return;
     setError(slipDownloadError);
   }, [slipDownloadError]);
+
+  useEffect(() => {
+    if (!orderPlaced || trackedOrderPlacedRef.current) return;
+    trackedOrderPlacedRef.current = true;
+    if (typeof window !== "undefined" && (window as any).fbq) {
+      (window as any).fbq("track", "PageView");
+    }
+  }, [orderPlaced]);
 
   // No auto-close for modal; user closes via button.
   const buildFullAddress = (parts: typeof addressParts) =>
@@ -862,6 +873,23 @@ export default function CheckoutContent({
 
   if (orderPlaced) {
     return (
+      <>
+      <Script
+        id="meta-pixel-base"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init', '${META_PIXEL_ID}');fbq('track', 'PageView');`,
+        }}
+      />
+      <noscript>
+        <img
+          height="1"
+          width="1"
+          style={{ display: "none" }}
+          src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
+          alt=""
+        />
+      </noscript>
       <motion.div
         className={`relative overflow-hidden ${containerClass}`}
         initial={{ opacity: 0 }}
@@ -1001,10 +1029,28 @@ export default function CheckoutContent({
         </div>
         </div>
       </motion.div>
+      </>
     );
   }
 
   return (
+    <>
+    <Script
+      id="meta-pixel-base"
+      strategy="afterInteractive"
+      dangerouslySetInnerHTML={{
+        __html: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init', '${META_PIXEL_ID}');fbq('track', 'PageView');`,
+      }}
+    />
+    <noscript>
+      <img
+        height="1"
+        width="1"
+        style={{ display: "none" }}
+        src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
+        alt=""
+      />
+    </noscript>
     <motion.div
       className={`relative overflow-hidden ${containerClass}`}
       initial={{ opacity: 0 }}
@@ -1304,6 +1350,7 @@ export default function CheckoutContent({
       </div>
       </div>
     </motion.div>
+    </>
   );
 }
 

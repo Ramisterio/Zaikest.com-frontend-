@@ -2,7 +2,7 @@
 
 import { useState, useEffect, ChangeEvent, useMemo, useCallback, useRef } from "react";
 import Image from "next/image";
-import { sanitizeNumber, sanitizeText } from "../../../utils/sanitize";
+import { sanitizeText } from "../../../utils/sanitize";
 import { API_BASE } from "../../../config/env";
 import { normalizeRemoteUrl, resolveAssetUrl } from "../../../utils/assetUrl";
 
@@ -96,8 +96,8 @@ export default function ProductsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [newProductName, setNewProductName] = useState("");
-  const [newProductPrice, setNewProductPrice] = useState(0);
-  const [newProductStock, setNewProductStock] = useState(0);
+  const [newProductPrice, setNewProductPrice] = useState("");
+  const [newProductStock, setNewProductStock] = useState("");
   const [newProductCategory, setNewProductCategory] = useState("");
   const [newProductImage, setNewProductImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
@@ -140,16 +140,25 @@ export default function ProductsPage() {
     setImagePreview(URL.createObjectURL(file));
   };
 
+  const sanitizeDecimalInput = (value: string) =>
+    value.replace(/[^\d.]/g, "").replace(/\.(?=.*\.)/g, "");
+
+  const sanitizeIntegerInput = (value: string) =>
+    value.replace(/\D/g, "");
+
   /* ================= ADD ================= */
   const handleAdd = async () => {
-    if (!newProductName || !newProductCategory || newProductPrice <= 0)
+    const parsedPrice = Number.parseFloat(newProductPrice);
+    const parsedStock = Number.parseInt(newProductStock || "0", 10);
+
+    if (!newProductName || !newProductCategory || !Number.isFinite(parsedPrice) || parsedPrice <= 0)
       return showMsg("Fill all required fields");
 
     try {
       const fd = new FormData();
       fd.append("name", newProductName);
-      fd.append("price", newProductPrice.toString());
-      fd.append("stock", newProductStock.toString());
+      fd.append("price", parsedPrice.toString());
+      fd.append("stock", parsedStock.toString());
       fd.append("category", newProductCategory);
       if (newProductImage) fd.append("image", newProductImage);
 
@@ -168,8 +177,8 @@ export default function ProductsPage() {
 
       // reset
       setNewProductName("");
-      setNewProductPrice(0);
-      setNewProductStock(0);
+      setNewProductPrice("");
+      setNewProductStock("");
       setNewProductCategory("");
       setNewProductImage(null);
       setImagePreview("");
@@ -183,8 +192,12 @@ export default function ProductsPage() {
     setEditingId(product._id);
     setShowForm(true);
     setNewProductName(product.name || "");
-    setNewProductPrice(product.price || 0);
-    setNewProductStock(product.stock || 0);
+    setNewProductPrice(
+      typeof product.price === "number" && product.price > 0 ? product.price.toString() : ""
+    );
+    setNewProductStock(
+      typeof product.stock === "number" && product.stock > 0 ? product.stock.toString() : ""
+    );
     setNewProductCategory(product.category?._id || "");
     setNewProductImage(null);
     const preview = normalizeRemoteUrl(
@@ -195,14 +208,17 @@ export default function ProductsPage() {
 
   const handleUpdate = async () => {
     if (!editingId) return;
-    if (!newProductName || !newProductCategory || newProductPrice <= 0)
+    const parsedPrice = Number.parseFloat(newProductPrice);
+    const parsedStock = Number.parseInt(newProductStock || "0", 10);
+
+    if (!newProductName || !newProductCategory || !Number.isFinite(parsedPrice) || parsedPrice <= 0)
       return showMsg("Fill all required fields");
 
     try {
       const fd = new FormData();
       fd.append("name", newProductName);
-      fd.append("price", newProductPrice.toString());
-      fd.append("stock", newProductStock.toString());
+      fd.append("price", parsedPrice.toString());
+      fd.append("stock", parsedStock.toString());
       fd.append("category", newProductCategory);
       if (newProductImage) fd.append("image", newProductImage);
 
@@ -222,8 +238,8 @@ export default function ProductsPage() {
       setEditingId(null);
       setShowForm(false);
       setNewProductName("");
-      setNewProductPrice(0);
-      setNewProductStock(0);
+      setNewProductPrice("");
+      setNewProductStock("");
       setNewProductCategory("");
       setNewProductImage(null);
       setImagePreview("");
@@ -236,8 +252,8 @@ export default function ProductsPage() {
     setEditingId(null);
     setShowForm(false);
     setNewProductName("");
-    setNewProductPrice(0);
-    setNewProductStock(0);
+    setNewProductPrice("");
+    setNewProductStock("");
     setNewProductCategory("");
     setNewProductImage(null);
     setImagePreview("");
@@ -393,18 +409,22 @@ export default function ProductsPage() {
             onChange={(e) => setNewProductName(sanitizeText(e.target.value))}
           />
           <input
-            type="number"
             placeholder="Price"
+            type="text"
+            inputMode="decimal"
+            pattern="\\d*(\\.\\d*)?"
             className="border p-2 rounded w-full"
             value={newProductPrice}
-            onChange={(e) => setNewProductPrice(sanitizeNumber(e.target.value))}
+            onChange={(e) => setNewProductPrice(sanitizeDecimalInput(e.target.value))}
           />
           <input
-            type="number"
             placeholder="Stock"
+            type="text"
+            inputMode="numeric"
+            pattern="\\d*"
             className="border p-2 rounded w-full"
             value={newProductStock}
-            onChange={(e) => setNewProductStock(sanitizeNumber(e.target.value))}
+            onChange={(e) => setNewProductStock(sanitizeIntegerInput(e.target.value))}
           />
           <select
             className="border p-2 rounded w-full"
@@ -552,4 +572,3 @@ export default function ProductsPage() {
     </div>
   );
 }
-
