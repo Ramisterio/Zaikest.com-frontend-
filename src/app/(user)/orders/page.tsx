@@ -9,6 +9,8 @@ import { API_BASE } from "../../../config/env";
 import { useTheme } from "../../../context/ThemeContext";
 import EditableText from "../../../components/theme/EditableText";
 import { downloadOrderSlipPdf } from "../../../utils/orderSlip";
+import { resolveAssetUrl } from "../../../utils/assetUrl";
+import ThemeMediaUploadButton from "../../../components/theme/ThemeMediaUploadButton";
 
 type OrderItem = {
   product?: string;
@@ -77,6 +79,10 @@ export default function OrdersPage() {
   const [orderId, setOrderId] = useState("");
   const initializedFromQueryRef = useRef(false);
   const { theme, editMode, canManageTheme, updateTheme } = useTheme();
+  const ordersBg = resolveAssetUrl(
+    theme.content.ordersBackgroundUrl,
+    "https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=2000&q=80"
+  );
 
   const fetchOrders = useCallback(async (phoneValue: string, orderIdValue?: string) => {
     try {
@@ -239,14 +245,18 @@ export default function OrdersPage() {
       <div
         className="absolute inset-0 bg-cover bg-center animate-hero-pan"
         style={{
-          backgroundImage:
-            "url(https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=2000&q=80)",
+          backgroundImage: `url(${ordersBg})`,
         }}
         aria-hidden
       />
       <div className="absolute inset-0 bg-black/70" aria-hidden />
 
       <div className="relative z-10 max-w-6xl mx-auto">
+        {editMode && canManageTheme && (
+          <div className="flex justify-end mb-4">
+            <ThemeMediaUploadButton label="Upload Orders Background" fieldKey="ordersBackgroundUrl" />
+          </div>
+        )}
         <div className="flex items-center justify-between mb-6">
           <EditableText
             as="h1"

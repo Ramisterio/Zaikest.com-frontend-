@@ -23,9 +23,22 @@ export type Theme = {
     heroSubtitle: string;
     heroPrimaryCta: string;
     heroSecondaryCta: string;
+    navbarLogoUrl: string;
+    heroMediaUrl: string;
+    heroMediaType: "image" | "video";
     categoryHeading: string;
     categoryViewAll: string;
     featuredHeading: string;
+    footerLogoUrl: string;
+    bannerMediaUrl: string;
+    bannerMediaType: "image" | "video";
+    cartBackgroundUrl: string;
+    productsHeroBackgroundUrl: string;
+    productsHeroOverlayUrl: string;
+    ordersBackgroundUrl: string;
+    checkoutBackgroundUrl: string;
+    checkoutBackgroundAltUrl: string;
+    checkoutLogoUrl: string;
     featuredCategoriesLabel: string;
     featuredProductsLabel: string;
     announcement: string;
@@ -203,9 +216,22 @@ export const defaultTheme: Theme = {
       "Shop daily kitchen favorites, made with care and brought to your door in minutes.",
     heroPrimaryCta: "Start shopping",
     heroSecondaryCta: "Explore deals",
+    navbarLogoUrl: "",
+    heroMediaUrl: "",
+    heroMediaType: "image",
     categoryHeading: "Shop by category",
     categoryViewAll: "View all",
     featuredHeading: "Fresh picks for you",
+    footerLogoUrl: "",
+    bannerMediaUrl: "",
+    bannerMediaType: "image",
+    cartBackgroundUrl: "",
+    productsHeroBackgroundUrl: "",
+    productsHeroOverlayUrl: "",
+    ordersBackgroundUrl: "",
+    checkoutBackgroundUrl: "",
+    checkoutBackgroundAltUrl: "",
+    checkoutLogoUrl: "",
     featuredCategoriesLabel: "Categories",
     featuredProductsLabel: "Products",
     announcement: "",

@@ -9,6 +9,8 @@ import { motion } from "framer-motion";
 import { sanitizeEmail } from "../utils/sanitize";
 import { useTheme } from "../context/ThemeContext";
 import EditableText from "./theme/EditableText";
+import { resolveAssetUrl } from "../utils/assetUrl";
+import ThemeMediaUploadButton from "./theme/ThemeMediaUploadButton";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
@@ -39,7 +41,7 @@ export default function Footer() {
           >
             <Link href="/">
               <Image
-                src="/images/zaikest-logo1.png"
+                src={resolveAssetUrl(theme.content.footerLogoUrl || theme.content.navbarLogoUrl, "/images/zaikest-logo1.png")}
                 alt="Zaikest Logo"
                 fill
                 priority
@@ -47,6 +49,9 @@ export default function Footer() {
               />
             </Link>
           </motion.div>
+          {editMode && canManageTheme && (
+            <ThemeMediaUploadButton label="Upload Footer Logo" fieldKey="footerLogoUrl" />
+          )}
           <p className="text-sm text-green-100 max-w-xs">
             <EditableText
               value={theme.content.footerBlurb}

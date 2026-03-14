@@ -16,6 +16,8 @@ import CartDrawer from "./CartDrawer";
 import { sanitizeSearch } from "../utils/sanitize";
 import { sanitizeInternalRedirect } from "../utils/urlRoute";
 import EditableText from "./theme/EditableText";
+import { resolveAssetUrl } from "../utils/assetUrl";
+import ThemeMediaUploadButton from "./theme/ThemeMediaUploadButton";
 
 export default function Navbar() {
   const { cart } = useCart();
@@ -133,13 +135,20 @@ export default function Navbar() {
           <div className="relative flex items-center shrink-0">
             <Link href="/" className="flex items-center">
               <Image
-                src="/images/zaikest-logo1.png"
+                src={resolveAssetUrl(theme.content.navbarLogoUrl, "/images/zaikest-logo1.png")}
                 alt="Zaikest"
                 width={96}
                 height={28}
                 className="object-contain w-[44px] sm:w-[56px] md:w-[64px] h-auto"
               />
             </Link>
+            {editMode && canManageTheme && (
+              <ThemeMediaUploadButton
+                label="Upload Logo"
+                fieldKey="navbarLogoUrl"
+                className="ml-2"
+              />
+            )}
           </div>
           <Link
             href="/"

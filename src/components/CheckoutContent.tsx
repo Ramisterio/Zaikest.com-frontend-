@@ -16,6 +16,7 @@ import { normalizeRemoteUrl, resolveAssetUrl } from "../utils/assetUrl";
 import { useTheme } from "../context/ThemeContext";
 import EditableText from "./theme/EditableText";
 import { useOrderSlip } from "../hooks/useOrderSlip";
+import ThemeMediaUploadButton from "./theme/ThemeMediaUploadButton";
 
 export default function CheckoutContent({
   variant = "page",
@@ -393,7 +394,7 @@ export default function CheckoutContent({
       ),
       ""
     );
-    const logoSrc = logoOverride || companyLogo || resolvePublicUrl("/images/zaikest-logo1.png");
+    const logoSrc = logoOverride || companyLogo || checkoutLogoSrc;
     const orderDate = payload.orderDate
       ? new Date(payload.orderDate).toLocaleString()
       : new Date().toLocaleString();
@@ -467,7 +468,7 @@ export default function CheckoutContent({
       ),
       ""
     );
-    const logoSrc = logoOverride || companyLogo || resolvePublicUrl("/images/zaikest-logo1.png");
+    const logoSrc = logoOverride || companyLogo || checkoutLogoSrc;
     const orderDate = new Date().toLocaleString();
     const rows = (snapshot.items || [])
       .map(
@@ -802,13 +803,29 @@ export default function CheckoutContent({
     !!addressParts.city.trim() &&
     !!addressParts.area.trim() &&
     !!user.address.trim();
+  const checkoutBgPrimary = resolveAssetUrl(
+    theme.content.checkoutBackgroundUrl,
+    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=2000&q=80"
+  );
+  const checkoutBgSecondary = resolveAssetUrl(
+    theme.content.checkoutBackgroundAltUrl,
+    "/images/wide-banner.jpg"
+  );
   const checkoutBgStyle = {
-    backgroundImage:
-      "url(https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=2000&q=80), url('/images/wide-banner.jpg')",
+    backgroundImage: checkoutBgSecondary
+      ? `url(${checkoutBgPrimary}), url(${checkoutBgSecondary})`
+      : `url(${checkoutBgPrimary})`,
     backgroundSize: "cover",
     backgroundPosition: "center",
     backgroundRepeat: "no-repeat",
   } as const;
+  const checkoutLogoRaw =
+    theme.content.checkoutLogoUrl ||
+    theme.content.navbarLogoUrl ||
+    theme.content.footerLogoUrl;
+  const checkoutLogoSrc = resolvePublicUrl(
+    resolveAssetUrl(checkoutLogoRaw, "/images/zaikest-logo1.png")
+  );
   const placedOrderPayload = (placedOrder?.serverOrder as any)?.order ?? (placedOrder?.serverOrder as any) ?? {};
   const placedCompanyName =
     pickFirstString(
@@ -822,7 +839,7 @@ export default function CheckoutContent({
         placedOrderPayload?.receipt?.company?.logo
       )
     ),
-    resolvePublicUrl("/images/zaikest-logo1.png")
+    checkoutLogoSrc
   );
 
   if (loading) {
@@ -830,6 +847,22 @@ export default function CheckoutContent({
       <div className={`relative overflow-hidden ${containerClass}`}>
         <div className="absolute inset-0 bg-black/65" aria-hidden />
         <div className={`relative z-10 ${contentWidthClass} text-center py-16 text-white/90`}>
+          {editMode && canManageTheme && (
+            <div className="flex flex-wrap justify-center gap-2 mb-4">
+              <ThemeMediaUploadButton
+                label="Upload Checkout Background"
+                fieldKey="checkoutBackgroundUrl"
+              />
+              <ThemeMediaUploadButton
+                label="Upload Secondary Background"
+                fieldKey="checkoutBackgroundAltUrl"
+              />
+              <ThemeMediaUploadButton
+                label="Upload Checkout Logo"
+                fieldKey="checkoutLogoUrl"
+              />
+            </div>
+          )}
           Loading checkout...
         </div>
       </div>
@@ -846,6 +879,22 @@ export default function CheckoutContent({
         />
         <div className="absolute inset-0 bg-black/65" aria-hidden />
         <div className={`relative z-10 ${contentWidthClass}`}>
+          {editMode && canManageTheme && (
+            <div className="flex flex-wrap justify-end gap-2 mb-3">
+              <ThemeMediaUploadButton
+                label="Upload Checkout Background"
+                fieldKey="checkoutBackgroundUrl"
+              />
+              <ThemeMediaUploadButton
+                label="Upload Secondary Background"
+                fieldKey="checkoutBackgroundAltUrl"
+              />
+              <ThemeMediaUploadButton
+                label="Upload Checkout Logo"
+                fieldKey="checkoutLogoUrl"
+              />
+            </div>
+          )}
         <EditableText
           as="h1"
           className="text-2xl font-extrabold text-white"
@@ -1063,6 +1112,22 @@ export default function CheckoutContent({
       />
       <div className="absolute inset-0 bg-black/65" aria-hidden />
       <div className={`relative z-10 ${contentWidthClass}`}>
+      {editMode && canManageTheme && (
+        <div className="flex flex-wrap justify-end gap-2 mb-3">
+          <ThemeMediaUploadButton
+            label="Upload Checkout Background"
+            fieldKey="checkoutBackgroundUrl"
+          />
+          <ThemeMediaUploadButton
+            label="Upload Secondary Background"
+            fieldKey="checkoutBackgroundAltUrl"
+          />
+          <ThemeMediaUploadButton
+            label="Upload Checkout Logo"
+            fieldKey="checkoutLogoUrl"
+          />
+        </div>
+      )}
       {variant === "modal" && (orderPlaced || error) && (
         <div
           className={`mb-4 rounded-2xl px-4 py-3 text-sm font-semibold ${

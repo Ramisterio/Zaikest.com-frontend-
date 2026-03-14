@@ -10,6 +10,7 @@ import { API_BASE } from "../../../config/env"
 import { normalizeRemoteUrl, resolveAssetUrl } from "../../../utils/assetUrl"
 import { useTheme } from "../../../context/ThemeContext"
 import EditableText from "../../../components/theme/EditableText"
+import ThemeMediaUploadButton from "../../../components/theme/ThemeMediaUploadButton"
 
 type Category = { _id: string; name: string }
 type Product = {
@@ -34,6 +35,14 @@ export default function ProductsPage() {
   const [error, setError] = useState("")
   const { theme, editMode, canManageTheme, updateTheme } = useTheme()
   const searchQuery = (searchParams.get("search") || "").trim()
+  const productsHeroBg = resolveAssetUrl(
+    theme.content.productsHeroBackgroundUrl,
+    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1600&q=80"
+  )
+  const productsHeroOverlay = resolveAssetUrl(
+    theme.content.productsHeroOverlayUrl,
+    "https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=2000&q=80"
+  )
 
   useEffect(() => {
     const categoryParam = searchParams.get("category")
@@ -121,21 +130,31 @@ export default function ProductsPage() {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage:
-              "url(https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1600&q=80)",
+            backgroundImage: `url(${productsHeroBg})`,
           }}
           aria-hidden
         />
         <div
           className="absolute inset-0 bg-cover bg-center scale-110 animate-hero-pan"
           style={{
-            backgroundImage:
-              "url(https://images.unsplash.com/photo-1543353071-873f17a7a088?auto=format&fit=crop&w=2000&q=80)",
+            backgroundImage: `url(${productsHeroOverlay})`,
           }}
           aria-hidden
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/55 to-black/35" />
         <div className="relative text-center px-6 py-10 sm:px-10 sm:py-16 max-w-3xl mx-auto">
+          {editMode && canManageTheme && (
+            <div className="flex justify-center gap-2 mb-4">
+              <ThemeMediaUploadButton
+                label="Upload Hero Background"
+                fieldKey="productsHeroBackgroundUrl"
+              />
+              <ThemeMediaUploadButton
+                label="Upload Hero Overlay"
+                fieldKey="productsHeroOverlayUrl"
+              />
+            </div>
+          )}
           <EditableText
             as="h1"
             className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-3 drop-shadow"

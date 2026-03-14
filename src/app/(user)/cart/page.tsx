@@ -7,6 +7,8 @@ import Link from "next/link";
 import PromoPosters from "../../../components/PromoPosters";
 import { useTheme } from "../../../context/ThemeContext";
 import EditableText from "../../../components/theme/EditableText";
+import { resolveAssetUrl } from "../../../utils/assetUrl";
+import ThemeMediaUploadButton from "../../../components/theme/ThemeMediaUploadButton";
 
 export default function CartPage() {
   const router = useRouter();
@@ -14,6 +16,10 @@ export default function CartPage() {
   const { theme, editMode, canManageTheme, updateTheme } = useTheme();
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartBg = resolveAssetUrl(
+    theme.content.cartBackgroundUrl,
+    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=2000&q=80"
+  );
 
   const handleCheckout = () => {
     router.push("/checkout");
@@ -24,13 +30,17 @@ export default function CartPage() {
       <div
         className="absolute inset-0 bg-cover bg-center animate-hero-pan"
         style={{
-          backgroundImage:
-            "url(https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=2000&q=80)",
+          backgroundImage: `url(${cartBg})`,
         }}
         aria-hidden
       />
       <div className="absolute inset-0 bg-black/70" aria-hidden />
       <div className="relative z-10 max-w-5xl mx-auto">
+        {editMode && canManageTheme && (
+          <div className="flex justify-end mb-4">
+            <ThemeMediaUploadButton label="Upload Cart Background" fieldKey="cartBackgroundUrl" />
+          </div>
+        )}
         {cart.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[70vh] text-center animate-fade-in">
             <EditableText

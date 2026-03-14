@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { apiPath } from "../../../config/env";
+import { resolveAssetUrl } from "../../../utils/assetUrl";
 import { sanitizeText } from "../../../utils/sanitize";
 import { useAuth } from "../../../context/AuthContext";
 import { Theme, ThemePatch, defaultTheme } from "../../../context/ThemeContext";
@@ -16,6 +17,171 @@ export default function AdminThemePage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "error" | "success" } | null>(null);
   const [version, setVersion] = useState<string | number | null>(null);
+  type MediaType = "image" | "video";
+  type MediaFieldKey =
+    | "hero"
+    | "banner"
+    | "navbarLogo"
+    | "footerLogo"
+    | "checkoutLogo"
+    | "cartBg"
+    | "productsHeroBg"
+    | "productsHeroOverlay"
+    | "ordersBg"
+    | "checkoutBg"
+    | "checkoutBgAlt";
+  const MEDIA_FIELDS: Record<
+    MediaFieldKey,
+    {
+      label: string;
+      urlKey: keyof Theme["content"];
+      typeKey?: keyof Theme["content"];
+      allowVideo?: boolean;
+    }
+  > = {
+    hero: {
+      label: "Hero Background",
+      urlKey: "heroMediaUrl",
+      typeKey: "heroMediaType",
+      allowVideo: true,
+    },
+    banner: {
+      label: "Featured Banner Background",
+      urlKey: "bannerMediaUrl",
+      typeKey: "bannerMediaType",
+      allowVideo: true,
+    },
+    navbarLogo: { label: "Navbar Logo", urlKey: "navbarLogoUrl" },
+    footerLogo: { label: "Footer Logo", urlKey: "footerLogoUrl" },
+    checkoutLogo: { label: "Checkout/Receipt Logo", urlKey: "checkoutLogoUrl" },
+    cartBg: { label: "Cart Background", urlKey: "cartBackgroundUrl" },
+    productsHeroBg: {
+      label: "Products Hero Background",
+      urlKey: "productsHeroBackgroundUrl",
+    },
+    productsHeroOverlay: {
+      label: "Products Hero Overlay",
+      urlKey: "productsHeroOverlayUrl",
+    },
+    ordersBg: { label: "Orders Background", urlKey: "ordersBackgroundUrl" },
+    checkoutBg: { label: "Checkout Background", urlKey: "checkoutBackgroundUrl" },
+    checkoutBgAlt: {
+      label: "Checkout Background (Secondary)",
+      urlKey: "checkoutBackgroundAltUrl",
+    },
+  };
+
+  const MEDIA_SECTION_KEYS: MediaFieldKey[] = [
+    "hero",
+    "banner",
+    "navbarLogo",
+    "footerLogo",
+    "checkoutLogo",
+    "cartBg",
+    "productsHeroBg",
+    "productsHeroOverlay",
+    "ordersBg",
+    "checkoutBg",
+    "checkoutBgAlt",
+  ];
+
+  const [uploadingKey, setUploadingKey] = useState<MediaFieldKey | null>(null);
+
+  const MAX_MEDIA_BYTES = 20 * 1024 * 1024;
+  const ALLOWED_IMAGE_MIME = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+  ]);
+  const ALLOWED_VIDEO_MIME = new Set(["video/mp4", "video/webm", "video/ogg"]);
+
+  const inferMediaType = (url: string, mime = ""): MediaType => {
+    const lowered = url.toLowerCase();
+    if (mime.startsWith("video/") || lowered.match(/\.(mp4|webm|ogg|mov)(\?|#|$)/)) {
+      return "video";
+    }
+    return "image";
+  };
+
+  const resolveMediaUrl = (raw?: string) => {
+    if (!raw) return "";
+    return resolveAssetUrl(raw, "");
+  };
+
+  const updateMedia = (key: MediaFieldKey, url: string, type: MediaType = "image") => {
+    const field = MEDIA_FIELDS[key];
+    setTheme((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        [field.urlKey]: url,
+        ...(field.typeKey ? { [field.typeKey]: type } : {}),
+      },
+    }));
+  };
+
+  const uploadThemeMedia = async (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch(apiPath("/v1/admin/theme/media"), {
+      method: "POST",
+      credentials: "include",
+      body: fd,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(json?.message || "Failed to upload media");
+    }
+    const url =
+      json?.url ||
+      json?.path ||
+      json?.fileUrl ||
+      json?.data?.url ||
+      json?.data?.path ||
+      json?.data?.fileUrl ||
+      "";
+    if (!url) throw new Error("Upload succeeded but no media url returned");
+    return url as string;
+  };
+
+  const validateMediaFile = (file: File, allowVideo: boolean) => {
+    if (file.size > MAX_MEDIA_BYTES) {
+      return `File is too large. Max size is ${Math.round(MAX_MEDIA_BYTES / (1024 * 1024))} MB.`;
+    }
+    if (allowVideo) {
+      if (!ALLOWED_IMAGE_MIME.has(file.type) && !ALLOWED_VIDEO_MIME.has(file.type)) {
+        return "Unsupported file type. Upload an image or video.";
+      }
+      return "";
+    }
+    if (!ALLOWED_IMAGE_MIME.has(file.type)) {
+      return "Unsupported file type. Upload an image.";
+    }
+    return "";
+  };
+
+  const handleMediaUpload = async (key: MediaFieldKey, file?: File | null) => {
+    if (!file) return;
+    const field = MEDIA_FIELDS[key];
+    const allowVideo = field.allowVideo ?? false;
+    const validationError = validateMediaFile(file, allowVideo);
+    if (validationError) {
+      showMsg(validationError);
+      return;
+    }
+    setUploadingKey(key);
+    try {
+      const url = await uploadThemeMedia(file);
+      const nextType = allowVideo ? inferMediaType(url, file.type) : "image";
+      updateMedia(key, url, nextType);
+      showMsg("Media uploaded", "success");
+    } catch (e: any) {
+      showMsg(e.message || "Failed to upload media");
+    } finally {
+      setUploadingKey(null);
+    }
+  };
 
   const mergeTheme = useMemo(
     () => (base: Theme, patch: Partial<Theme>): Theme => ({
@@ -1914,7 +2080,87 @@ export default function AdminThemePage() {
           )}
         </div>
       </section>
-      {/* Image editing removed: text content only */}
+      <section className="bg-white border rounded p-4 shadow space-y-4">
+        <h2 className="text-lg font-semibold">Theme Media</h2>
+        <div className="grid grid-cols-1 gap-6">
+          {MEDIA_SECTION_KEYS.map((key) => {
+            const field = MEDIA_FIELDS[key];
+            const urlValue = String(theme.content[field.urlKey] || "");
+            const typeValue = field.typeKey
+              ? (theme.content[field.typeKey] as MediaType)
+              : "image";
+            const allowVideo = field.allowVideo ?? false;
+            const accept = allowVideo ? "image/*,video/*" : "image/*";
+
+            return (
+              <div key={key} className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">{field.label}</h3>
+                  {uploadingKey === key && (
+                    <span className="text-xs text-gray-500">Uploading...</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
+                  <input
+                    className="border p-2 rounded sm:col-span-2"
+                    placeholder={`${field.label} URL`}
+                    value={urlValue}
+                    onChange={(e) =>
+                      updateMedia(key, sanitizeText(e.target.value), typeValue)
+                    }
+                  />
+                  {field.typeKey && (
+                    <select
+                      className="border p-2 rounded"
+                      value={typeValue}
+                      onChange={(e) =>
+                        updateMedia(key, urlValue, e.target.value as MediaType)
+                      }
+                    >
+                      <option value="image">Image/GIF</option>
+                      <option value="video">Video</option>
+                    </select>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <input
+                    type="file"
+                    accept={accept}
+                    onChange={(e) => handleMediaUpload(key, e.target.files?.[0])}
+                  />
+                  <button
+                    type="button"
+                    className="text-xs px-3 py-1 rounded border hover:bg-gray-50"
+                    onClick={() => updateMedia(key, "", "image")}
+                  >
+                    Clear
+                  </button>
+                </div>
+                {resolveMediaUrl(urlValue) && (
+                  <div className="rounded-lg overflow-hidden border">
+                    {typeValue === "video" && allowVideo ? (
+                      <video
+                        src={resolveMediaUrl(urlValue)}
+                        className="w-full h-40 object-cover"
+                        muted
+                        loop
+                        playsInline
+                        autoPlay
+                      />
+                    ) : (
+                      <img
+                        src={resolveMediaUrl(urlValue)}
+                        alt={`${field.label} preview`}
+                        className="w-full h-40 object-cover"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="bg-white border rounded p-4 shadow space-y-4">
         <h2 className="text-lg font-semibold">Company Info</h2>

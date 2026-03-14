@@ -27,6 +27,7 @@ import { normalizeRemoteUrl, resolveAssetUrl } from "../utils/assetUrl";
 import { useTheme } from "../context/ThemeContext";
 import EditableText from "../components/theme/EditableText";
 import { useCategories } from "../context/CategoriesContext";
+import ThemeMediaUploadButton from "../components/theme/ThemeMediaUploadButton";
 
 const landingImages = [
   "/images/slide1.jpg",
@@ -163,10 +164,36 @@ export default function HomePage() {
       }))
     : fallbackHighlights;
 
-  const heroBg =
+  const fallbackHeroBg =
     "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=2000&q=80";
-  const bannerBg =
+  const fallbackBannerBg =
     "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=2000&q=80";
+  const heroMediaUrl = resolveAssetUrl(theme.content.heroMediaUrl, fallbackHeroBg);
+  const heroMediaType = theme.content.heroMediaType || "image";
+  const bannerMediaUrl = resolveAssetUrl(theme.content.bannerMediaUrl, fallbackBannerBg);
+  const bannerMediaType = theme.content.bannerMediaType || "image";
+
+  const renderMediaBackground = (url: string, type: "image" | "video") => {
+    if (type === "video") {
+      return (
+        <video
+          src={url}
+          className="absolute inset-0 w-full h-full object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+      );
+    }
+    return (
+      <div
+        className="absolute inset-0 bg-cover bg-center animate-hero-pan"
+        style={{ backgroundImage: `url(${url})` }}
+        aria-hidden
+      />
+    );
+  };
 
   const updateHeroStat = (index: number, key: "title" | "text", value: string) => {
     const next = heroStats.map((stat, i) =>
@@ -207,15 +234,19 @@ export default function HomePage() {
       <main className="bg-transparent pt-[var(--nav-h)]">
         <section className="max-w-7xl mx-auto px-4 pt-8 sm:pt-10 pb-8">
           <div className="relative overflow-hidden rounded-3xl border border-green-200 bg-white/10">
-            <div
-              className="absolute inset-0 bg-cover bg-center animate-hero-pan"
-              style={{
-                backgroundImage: `url(${heroBg})`,
-              }}
-              aria-hidden
-            />
+            {renderMediaBackground(heroMediaUrl, heroMediaType)}
             <div className="absolute inset-0 bg-gradient-to-r from-[#0b0b0b]/85 via-[#2a0d12]/55 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#11090b]/70 via-transparent to-transparent" />
+            {editMode && canManageTheme && (
+              <div className="absolute top-4 right-4 z-20">
+                <ThemeMediaUploadButton
+                  label="Upload Hero Media"
+                  fieldKey="heroMediaUrl"
+                  typeKey="heroMediaType"
+                  allowVideo
+                />
+              </div>
+            )}
             <div className="relative px-6 py-14 sm:px-12 sm:py-20 lg:py-24 max-w-4xl">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-semibold backdrop-blur">
                 <Leaf size={14} />
@@ -387,14 +418,18 @@ export default function HomePage() {
 
         <section className="max-w-7xl mx-auto px-4 py-12 sm:py-16">
           <div className="relative overflow-hidden rounded-3xl border border-green-200 min-h-[420px] sm:min-h-[520px]">
-            <div
-              className="absolute inset-0 bg-cover bg-center animate-hero-pan"
-              style={{
-                backgroundImage: `url(${bannerBg})`,
-              }}
-              aria-hidden
-            />
+            {renderMediaBackground(bannerMediaUrl, bannerMediaType)}
             <div className="absolute inset-0 bg-black/65" aria-hidden />
+            {editMode && canManageTheme && (
+              <div className="absolute top-4 right-4 z-20">
+                <ThemeMediaUploadButton
+                  label="Upload Banner Media"
+                  fieldKey="bannerMediaUrl"
+                  typeKey="bannerMediaType"
+                  allowVideo
+                />
+              </div>
+            )}
             <div className="relative px-6 py-12 sm:px-12 sm:py-16">
               <div className="flex items-center justify-between mb-4">
                 <EditableText
