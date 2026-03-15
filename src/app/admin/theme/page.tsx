@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useMemo, useState } from "react";
 import { apiPath } from "../../../config/env";
 import { resolveAssetUrl } from "../../../utils/assetUrl";
@@ -2150,7 +2152,6 @@ export default function AdminThemePage() {
                         autoPlay
                       />
                     ) : (
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={resolveMediaUrl(urlValue)}
                         alt={`${field.label} preview`}

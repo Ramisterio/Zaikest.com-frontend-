@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { useCart } from "../context/CartContext";
@@ -931,7 +933,6 @@ export default function CheckoutContent({
         }}
       />
       <noscript>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           height="1"
           width="1"
@@ -1093,7 +1094,6 @@ export default function CheckoutContent({
       }}
     />
     <noscript>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         height="1"
         width="1"

@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useEffect, useState } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import {
@@ -118,7 +120,6 @@ export default function ThemeMediaUploadButton({
               autoPlay
             />
           ) : (
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewUrl}
               alt="Preview"
