@@ -109,11 +109,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Meta Pixel NoScript */}
         <noscript>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             height="1"
             width="1"
             style={{ display: "none" }}
             src="https://www.facebook.com/tr?id=1357503302801249&ev=PageView&noscript=1"
+            alt=""
           />
         </noscript>
 

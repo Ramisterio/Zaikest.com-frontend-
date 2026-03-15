@@ -214,7 +214,7 @@ export default function AdminThemePage() {
         const contentPatch: Partial<Theme["content"]> = {};
         (Object.keys(next.content) as (keyof Theme["content"])[]).forEach((key) => {
           if (next.content[key] !== base.content[key]) {
-            (contentPatch as Theme["content"])[key] = next.content[key];
+            contentPatch[key] = next.content[key];
           }
         });
         if (Object.keys(contentPatch).length) patch.content = contentPatch;
@@ -2150,6 +2150,7 @@ export default function AdminThemePage() {
                         autoPlay
                       />
                     ) : (
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={resolveMediaUrl(urlValue)}
                         alt={`${field.label} preview`}
