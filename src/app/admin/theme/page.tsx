@@ -214,9 +214,16 @@ export default function AdminThemePage() {
         if (Object.keys(colorsPatch).length) patch.colors = colorsPatch;
 
         const contentPatch: Partial<Theme["content"]> = {};
+        const setContentPatch = <K extends keyof Theme["content"]>(
+          key: K,
+          value: Theme["content"][K]
+        ) => {
+          contentPatch[key] = value;
+        };
         (Object.keys(next.content) as (keyof Theme["content"])[]).forEach((key) => {
-          if (next.content[key] !== base.content[key]) {
-            contentPatch[key] = next.content[key];
+          const nextValue = next.content[key];
+          if (nextValue !== base.content[key]) {
+            setContentPatch(key, nextValue);
           }
         });
         if (Object.keys(contentPatch).length) patch.content = contentPatch;
