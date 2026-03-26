@@ -2149,6 +2149,16 @@ export default function AdminThemePage() {
               }
             />
           </label>
+          <label className="text-sm sm:col-span-2">
+            Badge text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.announcementBadgeText}
+              onChange={(e) =>
+                updateSection("content", "announcementBadgeText", sanitizeText(e.target.value))
+              }
+            />
+          </label>
           <label className="inline-flex items-center gap-2 text-sm">
             <input
               type="checkbox"

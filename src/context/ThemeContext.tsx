@@ -189,6 +189,7 @@ export type Theme = {
     promoVideosLabel: string;
     promoVideosJson: string;
     promoVideos: ThemePromoVideo[];
+    announcementBadgeText: string;
     aboutHeading: string;
     aboutBody: string;
   };
@@ -392,6 +393,7 @@ export const defaultTheme: Theme = {
     promoVideosHeading: "Watch Zaikest in action",
     promoVideosSubheading: "Short clips for offers, delivery updates, and kitchen stories.",
     promoVideosLabel: "Video Ads",
+    announcementBadgeText: "Eid offer",
     promoVideosJson: JSON.stringify([
       {
         title: "Eid Offer Highlights",

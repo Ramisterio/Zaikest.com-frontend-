@@ -144,10 +144,16 @@ export default function Navbar() {
     <div className="announcement-shell announcement-wide announcement-corners announcement-motion text-[#2a1900]">
       <div className="announcement-inner announcement-inner-wide">
         <div className="max-w-7xl mx-auto px-4 py-3 sm:py-3.5 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 text-[11px] sm:text-xs font-semibold">
-          <span className="announcement-ribbon announcement-badge-pulse w-full sm:w-auto justify-center">
-            <Tag size={12} />
-            Eid offer
-          </span>
+                    <span className="announcement-ribbon announcement-badge-pulse w-full sm:w-auto justify-center">
+                      <Tag size={12} />
+                      <EditableText
+                        value={theme.content.announcementBadgeText}
+                        fallback="Eid offer"
+                        editMode={canEditAnnouncement}
+                        onSave={(next) => updateTheme({ content: { announcementBadgeText: next } })}
+                        className="inline-block"
+                      />
+                    </span>
           <span className="hidden sm:inline-flex items-center gap-2">
             <span className="announcement-accent" aria-hidden="true" />
             <span className="announcement-divider-wide" aria-hidden="true" />
