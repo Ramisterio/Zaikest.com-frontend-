@@ -9,6 +9,36 @@ import { sanitizeText } from "../../../utils/sanitize";
 import { useAuth } from "../../../context/AuthContext";
 import { Theme, ThemePatch, defaultTheme } from "../../../context/ThemeContext";
 
+const parsePromoVideos = (raw?: string) => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && typeof item === "object")
+      .map((item) => ({
+        title: String(item.title ?? ""),
+        url: String(item.url ?? ""),
+        enabled: item.enabled ?? true,
+      }))
+      .filter((item) => item.title || item.url);
+  } catch {
+    return [];
+  }
+};
+
+const hydrateTheme = (input: Theme): Theme => {
+  const parsed = parsePromoVideos(input.content?.promoVideosJson);
+  const fallback = defaultTheme.content.promoVideos;
+  return {
+    ...input,
+    content: {
+      ...input.content,
+      promoVideos: parsed.length ? parsed : fallback,
+    },
+  };
+};
+
 export default function AdminThemePage() {
   const { user } = useAuth();
   const canManageTheme = (user?.permissions || []).includes("MANAGE_THEME");
@@ -132,36 +162,6 @@ export default function AdminThemePage() {
     } catch {
       return false;
     }
-  };
-
-  const parsePromoVideos = (raw?: string) => {
-    if (!raw) return [];
-    try {
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
-      return parsed
-        .filter((item) => item && typeof item === "object")
-        .map((item) => ({
-          title: String(item.title ?? ""),
-          url: String(item.url ?? ""),
-          enabled: item.enabled ?? true,
-        }))
-        .filter((item) => item.title || item.url);
-    } catch {
-      return [];
-    }
-  };
-
-  const hydrateTheme = (input: Theme): Theme => {
-    const parsed = parsePromoVideos(input.content?.promoVideosJson);
-    const fallback = defaultTheme.content.promoVideos;
-    return {
-      ...input,
-      content: {
-        ...input.content,
-        promoVideos: parsed.length ? parsed : fallback,
-      },
-    };
   };
 
   const resolveMediaUrl = (raw?: string) => {
@@ -353,7 +353,7 @@ export default function AdminThemePage() {
         setLoading(false);
       }
     })();
-  }, [mergeTheme]);
+  }, []);
 
   const updateSection = <
     S extends "colors" | "content" | "company",
