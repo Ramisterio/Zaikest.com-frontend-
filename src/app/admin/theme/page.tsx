@@ -106,6 +106,64 @@ export default function AdminThemePage() {
     return "image";
   };
 
+  const normalizeVideoUrl = (raw: string) => {
+    if (!raw) return "";
+    try {
+      const parsed = new URL(raw);
+      if (parsed.hostname.includes("youtube.com")) {
+        const id = parsed.searchParams.get("v");
+        if (id) return `https://www.youtube.com/embed/${id}`;
+      }
+      if (parsed.hostname.includes("youtu.be")) {
+        const id = parsed.pathname.replace("/", "");
+        if (id) return `https://www.youtube.com/embed/${id}`;
+      }
+    } catch {
+      return raw;
+    }
+    return raw;
+  };
+
+  const isValidVideoUrl = (raw: string) => {
+    if (!raw) return false;
+    try {
+      const parsed = new URL(raw);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
+
+  const parsePromoVideos = (raw?: string) => {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter((item) => item && typeof item === "object")
+        .map((item) => ({
+          title: String(item.title ?? ""),
+          url: String(item.url ?? ""),
+          enabled: item.enabled ?? true,
+        }))
+        .filter((item) => item.title || item.url);
+    } catch {
+      return [];
+    }
+  };
+
+  const hydrateTheme = (input: Theme): Theme => {
+    const parsed = parsePromoVideos(input.content?.promoVideosJson);
+    const fallback = defaultTheme.content.promoVideos;
+    return {
+      ...input,
+      content: {
+        ...input.content,
+        promoVideos: parsed.length ? parsed : fallback,
+      },
+    };
+  };
+
   const resolveMediaUrl = (raw?: string) => {
     if (!raw) return "";
     return resolveAssetUrl(raw, "");
@@ -221,11 +279,22 @@ export default function AdminThemePage() {
           contentPatch[key] = value;
         };
         (Object.keys(next.content) as (keyof Theme["content"])[]).forEach((key) => {
+          if (key === "promoVideos") return;
           const nextValue = next.content[key];
           if (nextValue !== base.content[key]) {
             setContentPatch(key, nextValue);
           }
         });
+        const normalizedPromoVideos = (next.content.promoVideos || []).map((video) => ({
+          ...video,
+          url: normalizeVideoUrl(video.url || ""),
+        }));
+        const promoVideosChanged =
+          JSON.stringify(normalizedPromoVideos ?? []) !==
+          JSON.stringify(base.content.promoVideos ?? []);
+        if (promoVideosChanged) {
+          setContentPatch("promoVideosJson", JSON.stringify(normalizedPromoVideos ?? []));
+        }
         if (Object.keys(contentPatch).length) patch.content = contentPatch;
 
         const companyPatch: Partial<Theme["company"]> = {};
@@ -274,8 +343,9 @@ export default function AdminThemePage() {
         const json = await res.json();
         const { serverTheme, nextVersion } = extractThemePayload(json);
         if (!res.ok || !serverTheme) throw new Error(json?.message || "Failed to load theme");
-        setTheme(serverTheme as Theme);
-        setOriginalTheme(serverTheme as Theme);
+        const hydrated = hydrateTheme(serverTheme as Theme);
+        setTheme(hydrated);
+        setOriginalTheme(hydrated);
         setVersion(nextVersion);
       } catch (e: any) {
         showMsg(e.message || "Failed to load theme");
@@ -297,6 +367,16 @@ export default function AdminThemePage() {
       ...prev,
       [section]: {
         ...prev[section],
+        [key]: value,
+      },
+    }));
+  };
+
+  const updateContentToggle = <K extends keyof Theme["content"]>(key: K, value: boolean) => {
+    setTheme((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
         [key]: value,
       },
     }));
@@ -353,6 +433,39 @@ export default function AdminThemePage() {
     }));
   };
 
+  const updatePromoVideo = (
+    index: number,
+    field: "title" | "url" | "enabled",
+    value: string | boolean
+  ) => {
+    setTheme((prev) => {
+      const next = [...(prev.content.promoVideos || [])];
+      if (!next[index]) next[index] = { title: "", url: "", enabled: true };
+      next[index] = { ...next[index], [field]: value };
+      return { ...prev, content: { ...prev.content, promoVideos: next } };
+    });
+  };
+
+  const addPromoVideo = () => {
+    setTheme((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        promoVideos: [...(prev.content.promoVideos || []), { title: "", url: "", enabled: true }],
+      },
+    }));
+  };
+
+  const removePromoVideo = (index: number) => {
+    setTheme((prev) => ({
+      ...prev,
+      content: {
+        ...prev.content,
+        promoVideos: (prev.content.promoVideos || []).filter((_, i) => i !== index),
+      },
+    }));
+  };
+
   const removePromoCard = (index: number) => {
     setTheme((prev) => ({
       ...prev,
@@ -363,6 +476,14 @@ export default function AdminThemePage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const invalidVideoIndex = (theme.content.promoVideos || []).findIndex(
+        (video) =>
+          video.enabled !== false && (!video.url || !isValidVideoUrl(normalizeVideoUrl(video.url)))
+      );
+      if (invalidVideoIndex !== -1) {
+        showMsg(`Promo video ${invalidVideoIndex + 1} has an invalid URL.`);
+        return;
+      }
       const patch = buildPatch(theme, originalTheme);
       if (Object.keys(patch).length === 0) {
         showMsg("No changes to save.", "success");
@@ -403,8 +524,9 @@ export default function AdminThemePage() {
       }
       const { serverTheme, nextVersion } = extractThemePayload(json);
       if (!res.ok || !serverTheme) throw new Error(json?.message || "Failed to update theme");
-      setTheme(serverTheme as Theme);
-      setOriginalTheme(serverTheme as Theme);
+      const hydrated = hydrateTheme(serverTheme as Theme);
+      setTheme(hydrated);
+      setOriginalTheme(hydrated);
       setVersion(nextVersion);
       showMsg("Theme updated", "success");
     } catch (e: any) {
@@ -2015,6 +2137,88 @@ export default function AdminThemePage() {
       </section>
 
       <section className="bg-white border rounded p-4 shadow space-y-4">
+        <h2 className="text-lg font-semibold">Announcement Banner</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="text-sm sm:col-span-2">
+            Announcement text
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.announcement}
+              onChange={(e) =>
+                updateSection("content", "announcement", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={theme.content.announcementEnabled}
+              onChange={(e) => updateContentToggle("announcementEnabled", e.target.checked)}
+            />
+            Enable announcement banner
+          </label>
+        </div>
+      </section>
+
+      <section className="bg-white border rounded p-4 shadow space-y-4">
+        <h2 className="text-lg font-semibold">Promo Videos Text</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="text-sm sm:col-span-2">
+            Heading
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.promoVideosHeading}
+              onChange={(e) =>
+                updateSection("content", "promoVideosHeading", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm sm:col-span-2">
+            Subheading
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.promoVideosSubheading}
+              onChange={(e) =>
+                updateSection("content", "promoVideosSubheading", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+          <label className="text-sm">
+            Label
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.promoVideosLabel}
+              onChange={(e) =>
+                updateSection("content", "promoVideosLabel", sanitizeText(e.target.value))
+              }
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="bg-white border rounded p-4 shadow space-y-4">
+        <h2 className="text-lg font-semibold">About Page</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="text-sm sm:col-span-2">
+            Heading
+            <input
+              className="mt-1 w-full border p-2 rounded"
+              value={theme.content.aboutHeading}
+              onChange={(e) => updateSection("content", "aboutHeading", sanitizeText(e.target.value))}
+            />
+          </label>
+          <label className="text-sm sm:col-span-2">
+            Body
+            <textarea
+              className="mt-1 w-full border p-2 rounded min-h-[140px]"
+              value={theme.content.aboutBody}
+              onChange={(e) => updateSection("content", "aboutBody", sanitizeText(e.target.value))}
+            />
+          </label>
+        </div>
+      </section>
+
+      <section className="bg-white border rounded p-4 shadow space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Hero Stats</h2>
           <button
@@ -2271,6 +2475,65 @@ export default function AdminThemePage() {
           ))}
           {(!theme.promoCards || theme.promoCards.length === 0) && (
             <p className="text-sm text-gray-500">No promo cards yet.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="bg-white border rounded p-4 shadow space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Promo Videos</h2>
+          <button
+            onClick={addPromoVideo}
+            className="text-sm px-3 py-1.5 rounded border hover:bg-gray-50"
+          >
+            + Add Video
+          </button>
+        </div>
+        <div className="space-y-3">
+          {(theme.content.promoVideos || []).map((video, index) => (
+            <div
+              key={`video-${index}`}
+              className="grid grid-cols-1 sm:grid-cols-6 gap-3 items-center"
+            >
+              <input
+                className="border p-2 rounded sm:col-span-2"
+                value={video.title}
+                placeholder="Video title"
+                onChange={(e) =>
+                  updatePromoVideo(index, "title", sanitizeText(e.target.value))
+                }
+              />
+              <input
+                className="border p-2 rounded sm:col-span-3"
+                value={video.url}
+                placeholder="Video embed URL"
+                onChange={(e) =>
+                  updatePromoVideo(index, "url", sanitizeText(e.target.value))
+                }
+                onBlur={(e) =>
+                  updatePromoVideo(index, "url", normalizeVideoUrl(sanitizeText(e.target.value)))
+                }
+              />
+              <div className="flex items-center gap-3 sm:col-span-1">
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={video.enabled ?? true}
+                    onChange={(e) => updatePromoVideo(index, "enabled", e.target.checked)}
+                  />
+                  Enabled
+                </label>
+                <button
+                  onClick={() => removePromoVideo(index)}
+                  className="text-sm px-3 py-2 rounded border text-red-600 hover:bg-red-50"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))}
+          {(!theme.content.promoVideos || theme.content.promoVideos.length === 0) && (
+            <p className="text-sm text-gray-500">No promo videos yet.</p>
           )}
         </div>
       </section>

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "../context/CartContext";
-import { ShoppingCart, Menu, X, Search, ChevronDown, MapPin, Sparkles, User } from "lucide-react";
+import { ShoppingCart, Menu, X, Search, ChevronDown, MapPin, Sparkles, User, Tag } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Modal from "./Modal";
 import LoginForm from "./LoginForm";
@@ -40,6 +40,7 @@ export default function Navbar() {
   const [showCategories, setShowCategories] = useState(true);
   const effectiveCompact = false;
   const headerRef = useRef<HTMLElement | null>(null);
+  const [announcementOpen, setAnnouncementOpen] = useState(false);
 
 
   const { categories } = useCategories();
@@ -95,11 +96,105 @@ export default function Navbar() {
     }
   };
 
+  const announcementText = theme?.content?.announcement?.trim() || "";
+  const canEditAnnouncement = editMode && canManageTheme;
+  const announcementEnabled = theme?.content?.announcementEnabled ?? true;
+  const shouldRenderAnnouncement =
+    (announcementEnabled && announcementText.length > 0) || canEditAnnouncement;
+  const announcementDismissKey = "zaikest:announcement-dismissed:session";
+
+  useEffect(() => {
+    if (!shouldRenderAnnouncement) {
+      setAnnouncementOpen(false);
+      return;
+    }
+    if (typeof window === "undefined") return;
+    try {
+      const dismissed = window.sessionStorage.getItem(announcementDismissKey);
+      setAnnouncementOpen(dismissed !== "true");
+    } catch {
+      setAnnouncementOpen(true);
+    }
+  }, [announcementText, shouldRenderAnnouncement, canEditAnnouncement]);
+
+  const dismissAnnouncement = () => {
+    setAnnouncementOpen(false);
+    if (typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem(announcementDismissKey, "true");
+    } catch {
+      // Ignore storage errors.
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleBeforeUnload = () => {
+      try {
+        window.sessionStorage.removeItem(announcementDismissKey);
+      } catch {
+        // Ignore storage errors.
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  const bannerContent = (
+    <div className="announcement-shell announcement-wide announcement-corners announcement-motion text-[#2a1900]">
+      <div className="announcement-inner announcement-inner-wide">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-3.5 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3 text-[11px] sm:text-xs font-semibold">
+          <span className="announcement-ribbon announcement-badge-pulse w-full sm:w-auto justify-center">
+            <Tag size={12} />
+            Eid offer
+          </span>
+          <span className="hidden sm:inline-flex items-center gap-2">
+            <span className="announcement-accent" aria-hidden="true" />
+            <span className="announcement-divider-wide" aria-hidden="true" />
+          </span>
+          <EditableText
+            value={theme?.content?.announcement || ""}
+            fallback="Seasonal deals and delivery updates appear here."
+            editMode={canEditAnnouncement}
+            onSave={(next) => updateTheme({ content: { announcement: next } })}
+            className="flex-1 min-w-0 leading-snug break-words text-center sm:text-left"
+          />
+          <span className="announcement-cta hidden sm:inline-flex">
+            <span className="announcement-cta-dot" aria-hidden="true" />
+            Limited time
+          </span>
+          <button
+            type="button"
+            onClick={dismissAnnouncement}
+            aria-label="Dismiss announcement"
+            className="inline-flex items-center justify-center rounded-full p-1.5 bg-black text-white hover:bg-black/80 transition self-center sm:self-auto"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <header
       ref={headerRef}
       className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-[#c41d1d] to-[#0f0f0f] text-white"
     >
+      {shouldRenderAnnouncement && (
+        <div
+          className={`transition-all duration-300 ${
+            announcementOpen
+              ? "max-h-[140px] sm:max-h-[120px] opacity-100 overflow-visible"
+              : "max-h-0 opacity-0 overflow-hidden"
+          }`}
+        >
+          <div className="hidden sm:block">
+            <div className="w-full">{bannerContent}</div>
+          </div>
+        </div>
+      )}
+
       <div
         className={`block transition-all duration-300 ${
           effectiveCompact ? "max-h-0 opacity-0 overflow-hidden" : "max-h-24 sm:max-h-16 opacity-100"
@@ -150,6 +245,11 @@ export default function Navbar() {
               />
             )}
           </div>
+          {shouldRenderAnnouncement && announcementOpen && (
+            <div className="w-full sm:hidden">
+              <div>{bannerContent}</div>
+            </div>
+          )}
           <Link
             href="/"
             className="inline-flex items-center gap-2 px-2 py-1.5 sm:px-3 sm:py-2 rounded-full bg-white/10 border border-white/20 text-[10px] sm:text-sm font-semibold text-white hover:bg-white/20 transition"

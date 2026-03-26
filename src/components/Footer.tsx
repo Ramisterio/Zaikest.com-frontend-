@@ -245,6 +245,14 @@ export default function Footer() {
               <FaWhatsapp />
             </a>
           </div>
+          <div className="mt-5 flex">
+            <Link
+              href="/about"
+              className="w-full inline-flex items-center justify-center rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white hover:bg-white/20 transition"
+            >
+              About Us
+            </Link>
+          </div>
         </div>
       </div>
 

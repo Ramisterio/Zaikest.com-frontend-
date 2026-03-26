@@ -7,6 +7,7 @@ import { useAuth } from "./AuthContext";
 export type ThemeHighlight = { title: string; text: string };
 export type ThemeStat = { title: string; text: string };
 export type ThemePromoCard = { title: string; text: string; badge: string; enabled?: boolean };
+export type ThemePromoVideo = { title: string; url: string; enabled?: boolean };
 
 export type Theme = {
   themeSchemaVersion?: number;
@@ -42,6 +43,7 @@ export type Theme = {
     featuredCategoriesLabel: string;
     featuredProductsLabel: string;
     announcement: string;
+    announcementEnabled: boolean;
     navbarDeliveryText: string;
     navbarDealsText: string;
     navbarHomeText: string;
@@ -182,6 +184,13 @@ export type Theme = {
     ordersTotalLabel: string;
     ordersDownloadReceiptText: string;
     ordersDownloadSlipText: string;
+    promoVideosHeading: string;
+    promoVideosSubheading: string;
+    promoVideosLabel: string;
+    promoVideosJson: string;
+    promoVideos: ThemePromoVideo[];
+    aboutHeading: string;
+    aboutBody: string;
   };
   heroStats: ThemeStat[];
   highlights: ThemeHighlight[];
@@ -234,7 +243,8 @@ export const defaultTheme: Theme = {
     checkoutLogoUrl: "",
     featuredCategoriesLabel: "Categories",
     featuredProductsLabel: "Products",
-    announcement: "",
+    announcement: "Eid Offer is Live! Enjoy festive savings, fast delivery, and fresh favorites all week.",
+    announcementEnabled: true,
     navbarDeliveryText: "",
     navbarDealsText: "",
     navbarHomeText: "Home",
@@ -379,6 +389,46 @@ export const defaultTheme: Theme = {
     ordersTotalLabel: "Total",
     ordersDownloadReceiptText: "Download receipt",
     ordersDownloadSlipText: "Download slip",
+    promoVideosHeading: "Watch Zaikest in action",
+    promoVideosSubheading: "Short clips for offers, delivery updates, and kitchen stories.",
+    promoVideosLabel: "Video Ads",
+    promoVideosJson: JSON.stringify([
+      {
+        title: "Eid Offer Highlights",
+        url: "https://www.youtube.com/embed/ysz5S6PUM-U",
+        enabled: true,
+      },
+      {
+        title: "Fresh Delivery Promise",
+        url: "https://www.youtube.com/embed/jNQXAC9IVRw",
+        enabled: true,
+      },
+      {
+        title: "Behind the Kitchen",
+        url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        enabled: true,
+      },
+    ]),
+    promoVideos: [
+      {
+        title: "Eid Offer Highlights",
+        url: "https://www.youtube.com/embed/ysz5S6PUM-U",
+        enabled: true,
+      },
+      {
+        title: "Fresh Delivery Promise",
+        url: "https://www.youtube.com/embed/jNQXAC9IVRw",
+        enabled: true,
+      },
+      {
+        title: "Behind the Kitchen",
+        url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+        enabled: true,
+      },
+    ],
+    aboutHeading: "About Zaikest",
+    aboutBody:
+      "Zaikest brings the true taste of Pakistan to kitchens everywhere. Rooted in authenticity and tradition, our vision is simple, to make Pakistani cooking easy, quick, and accessible without compromising on flavor. By blending traditional Pakistani recipes with modern convenience, Zaikest transforms everyday cooking into a delightful experience.\n\nOur range of ready-to-cook pastes and desi recipe solutions is crafted for people who love homemade Pakistani food but want quick and easy meals. With perfectly balanced spices and authentic ingredients, Zaikest helps you prepare tasty desi dishes in just minutes, no chopping, no extra masalas, just great taste every time.\n\nAt Zaikest, we believe food is more than just a meal, it’s about culture, comfort, and connection. That’s why we are committed to delivering high-quality, convenient cooking solutions that make traditional Pakistani cooking easier for modern lifestyles.",
   },
   heroStats: [
     { title: "20-30 min", text: "Avg delivery" },
@@ -458,16 +508,53 @@ type ThemeContextType = {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const mergeTheme = (prev: Theme, patch: ThemePatch): Theme => ({
-  ...prev,
-  ...patch,
-  colors: { ...prev.colors, ...patch.colors },
-  content: { ...prev.content, ...patch.content },
-  company: { ...prev.company, ...patch.company },
-  heroStats: patch.heroStats ?? prev.heroStats,
-  highlights: patch.highlights ?? prev.highlights,
-  promoCards: patch.promoCards ?? prev.promoCards,
-});
+const mergeTheme = (prev: Theme, patch: ThemePatch): Theme => {
+  const mergedContent = { ...prev.content, ...patch.content };
+  if (patch.content?.promoVideosJson) {
+    const parsed = parsePromoVideos(patch.content.promoVideosJson);
+    mergedContent.promoVideos = parsed.length ? parsed : prev.content.promoVideos;
+  }
+  return {
+    ...prev,
+    ...patch,
+    colors: { ...prev.colors, ...patch.colors },
+    content: mergedContent,
+    company: { ...prev.company, ...patch.company },
+    heroStats: patch.heroStats ?? prev.heroStats,
+    highlights: patch.highlights ?? prev.highlights,
+    promoCards: patch.promoCards ?? prev.promoCards,
+  };
+};
+
+const parsePromoVideos = (raw?: string): ThemePromoVideo[] => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && typeof item === "object")
+      .map((item) => ({
+        title: String(item.title ?? ""),
+        url: String(item.url ?? ""),
+        enabled: item.enabled ?? true,
+      }))
+      .filter((item) => item.title || item.url);
+  } catch {
+    return [];
+  }
+};
+
+const hydrateTheme = (input: Theme): Theme => {
+  const parsed = parsePromoVideos(input.content?.promoVideosJson);
+  const fallback = defaultTheme.content.promoVideos;
+  return {
+    ...input,
+    content: {
+      ...input.content,
+      promoVideos: parsed.length ? parsed : fallback,
+    },
+  };
+};
 
 const extractThemePayload = (json: any) => {
   const serverTheme = json?.theme ?? json?.data?.theme;
@@ -493,7 +580,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
     [user]
   );
 
-  const [theme, setTheme] = useState<Theme>(defaultTheme);
+  const [theme, setTheme] = useState<Theme>(hydrateTheme(defaultTheme));
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [version, setVersion] = useState<string | number | null>(null);
@@ -518,7 +605,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         if (!force && lastUpdateAtRef.current > startedAt) {
           return;
         }
-        const nextTheme = serverTheme as Theme;
+        const nextTheme = hydrateTheme(serverTheme as Theme);
         setTheme(nextTheme);
         setVersion(nextVersion);
         writeThemeCache(nextTheme, nextVersion);
@@ -566,10 +653,10 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         }
         const { serverTheme, nextVersion } = extractThemePayload(json);
         if (res.ok && serverTheme) {
-          const nextTheme = serverTheme as Theme;
-          setTheme(nextTheme);
-          setVersion(nextVersion);
-          writeThemeCache(nextTheme, nextVersion);
+      const nextTheme = hydrateTheme(serverTheme as Theme);
+      setTheme(nextTheme);
+      setVersion(nextVersion);
+      writeThemeCache(nextTheme, nextVersion);
         } else {
           await refreshTheme(true);
         }

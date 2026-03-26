@@ -24,7 +24,7 @@ import PromoPosters from "../components/PromoPosters";
 import { getCategoryIcon } from "../utils/categoryIcon";
 import { API_BASE } from "../config/env";
 import { normalizeRemoteUrl, resolveAssetUrl } from "../utils/assetUrl";
-import { useTheme } from "../context/ThemeContext";
+import { defaultTheme, useTheme } from "../context/ThemeContext";
 import EditableText from "../components/theme/EditableText";
 import { useCategories } from "../context/CategoriesContext";
 import ThemeMediaUploadButton from "../components/theme/ThemeMediaUploadButton";
@@ -80,6 +80,42 @@ const fallbackCategories = [
   { name: "Spices", icon: Flame, color: "bg-amber-50" },
   { name: "Snacks", icon: Cookie, color: "bg-amber-50" },
 ];
+
+const normalizeVideoUrl = (url: string) => {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("youtube.com")) {
+      const id = parsed.searchParams.get("v");
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+    if (parsed.hostname.includes("youtu.be")) {
+      const id = parsed.pathname.replace("/", "");
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+  } catch {
+    // ignore invalid URL
+  }
+  return url;
+};
+
+const parsePromoVideos = (raw?: string) => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && typeof item === "object")
+      .map((item) => ({
+        title: String(item.title ?? ""),
+        url: String(item.url ?? ""),
+        enabled: item.enabled ?? true,
+      }))
+      .filter((item) => item.title || item.url);
+  } catch {
+    return [];
+  }
+};
 
 type Category = { _id: string; name: string }
 type Product = {
@@ -163,6 +199,15 @@ export default function HomePage() {
         icon: fallbackHighlights[index % fallbackHighlights.length].icon,
       }))
     : fallbackHighlights;
+
+  const resolvedPromoVideos = (() => {
+    const fromJson = parsePromoVideos(theme.content.promoVideosJson);
+    if (fromJson.length) return fromJson;
+    if (theme.content.promoVideos && theme.content.promoVideos.length) {
+      return theme.content.promoVideos;
+    }
+    return defaultTheme.content.promoVideos || [];
+  })();
 
   const fallbackHeroBg =
     "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=2000&q=80";
@@ -587,6 +632,63 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className="max-w-7xl mx-auto px-4 pb-16">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+            <div>
+              <EditableText
+                as="h2"
+                className="text-2xl font-bold text-green-950"
+                value={theme.content.promoVideosHeading}
+                fallback="Watch Zaikest in action"
+                editMode={editMode && canManageTheme}
+                onSave={(next) => updateTheme({ content: { promoVideosHeading: next } })}
+              />
+              <EditableText
+                as="p"
+                className="text-sm text-green-800/80 mt-1"
+                value={theme.content.promoVideosSubheading}
+                fallback="Short clips for offers, delivery updates, and kitchen stories."
+                editMode={editMode && canManageTheme}
+                onSave={(next) => updateTheme({ content: { promoVideosSubheading: next } })}
+                multiline
+              />
+            </div>
+            <EditableText
+              as="span"
+              className="text-xs font-semibold uppercase tracking-[0.2em] text-green-700"
+              value={theme.content.promoVideosLabel}
+              fallback="Video Ads"
+              editMode={editMode && canManageTheme}
+              onSave={(next) => updateTheme({ content: { promoVideosLabel: next } })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {resolvedPromoVideos
+              .filter((video) => video.enabled !== false)
+              .map((video) => (
+              <div
+                key={video.title}
+                className="rounded-2xl border border-green-200 bg-white/70 shadow-sm overflow-hidden"
+              >
+                <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
+                  <iframe
+                    src={normalizeVideoUrl(video.url)}
+                    title={video.title}
+                    className="absolute inset-0 w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+                <div className="p-4">
+                  <p className="text-sm font-semibold text-green-950">{video.title}</p>
+                  <p className="text-xs text-green-700 mt-1">16:9 promotional clip</p>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       </main>
