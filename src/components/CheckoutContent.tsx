@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useRef, useState } from "react";
-import Script from "next/script";
+import { useRouter } from "next/navigation";
 import { useCart } from "../context/CartContext";
 import Link from "next/link";
 import Image from "next/image";
@@ -20,14 +20,45 @@ import EditableText from "./theme/EditableText";
 import { useOrderSlip } from "../hooks/useOrderSlip";
 import ThemeMediaUploadButton from "./theme/ThemeMediaUploadButton";
 
+export type CheckoutPlacedOrderSnapshot = {
+  items: Array<{
+    _id: string;
+    name: string;
+    price: number;
+    quantity: number;
+  }>;
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  user: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    id: string;
+  };
+  serverOrder?: unknown;
+  downloadUrl?: string;
+};
+
 export default function CheckoutContent({
   variant = "page",
   onRequestClose,
+  initialPlacedOrder,
+  trackPurchase = false,
+  successRedirectPath = "/purchase",
 }: {
   variant?: "page" | "modal";
   onRequestClose?: () => void;
+  initialPlacedOrder?: CheckoutPlacedOrderSnapshot | null;
+  trackPurchase?: boolean;
+  successRedirectPath?: string;
 }) {
-  const META_PIXEL_ID = "1357503302801249";
+  const router = useRouter();
+  const safeSuccessRedirectPath =
+    typeof successRedirectPath === "string" && successRedirectPath.startsWith("/") && !successRedirectPath.startsWith("//")
+      ? successRedirectPath
+      : "/purchase";
   const { cart, clearCart } = useCart();
   const { user: authUser } = useAuth();
   const { theme, loading, editMode, canManageTheme, updateTheme } = useTheme();
@@ -78,18 +109,12 @@ export default function CheckoutContent({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [isRedirectingToSuccess, setIsRedirectingToSuccess] = useState(false);
+  const isRedirectingToSuccessRef = useRef(false);
   const [isLocating, setIsLocating] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [placedOrder, setPlacedOrder] = useState<CheckoutPlacedOrderSnapshot | null>(initialPlacedOrder ?? null);
+  const [orderPlaced, setOrderPlaced] = useState(Boolean(initialPlacedOrder));
   const trackedOrderPlacedRef = useRef(false);
-  const [placedOrder, setPlacedOrder] = useState<{
-    items: typeof cart;
-    subtotal: number;
-    deliveryFee: number;
-    total: number;
-    user: typeof user;
-    serverOrder?: unknown;
-    downloadUrl?: string;
-  } | null>(null);
   const {
     loading: isSlipDownloading,
     error: slipDownloadError,
@@ -103,12 +128,57 @@ export default function CheckoutContent({
   }, [slipDownloadError]);
 
   useEffect(() => {
+    if (!trackPurchase) return;
     if (!orderPlaced || trackedOrderPlacedRef.current) return;
+    if (!placedOrder) return;
+
     trackedOrderPlacedRef.current = true;
-    if (typeof window !== "undefined" && (window as any).fbq) {
-      (window as any).fbq("track", "PageView");
+
+    const fbq = (window as any)?.fbq as undefined | ((...args: any[]) => void);
+    if (typeof fbq !== "function") return;
+
+    const orderPayload = (placedOrder.serverOrder as any)?.order ?? placedOrder.serverOrder ?? {};
+    const orderId =
+      orderPayload?._id ||
+      orderPayload?.id ||
+      orderPayload?.orderId ||
+      orderPayload?.number ||
+      undefined;
+
+    const dedupeKey = orderId ? `meta:purchaseTracked:${String(orderId)}` : null;
+    if (dedupeKey) {
+      try {
+        if (window.sessionStorage.getItem(dedupeKey) === "1") return;
+      } catch {
+        // ignore storage failures and still attempt tracking
+      }
     }
-  }, [orderPlaced]);
+
+    const numItems = (placedOrder.items || []).reduce((sum, item) => sum + toFiniteNumber(item.quantity, 0), 0);
+    const contents = (placedOrder.items || [])
+      .map((item) => ({
+        id: item._id,
+        quantity: toFiniteNumber(item.quantity, 0),
+        item_price: toFiniteNumber(item.price, 0),
+      }))
+      .filter((item) => Boolean(item.id));
+
+    fbq("track", "Purchase", {
+      currency: "PKR",
+      value: toFiniteNumber(placedOrder.total, 0),
+      content_type: "product",
+      contents,
+      num_items: numItems,
+      ...(orderId ? { order_id: String(orderId) } : {}),
+    });
+    if (dedupeKey) {
+      try {
+        window.sessionStorage.setItem(dedupeKey, "1");
+      } catch {
+        // ignore
+      }
+    }
+  }, [trackPurchase, orderPlaced, placedOrder]);
 
   // No auto-close for modal; user closes via button.
   const buildFullAddress = (parts: typeof addressParts) =>
@@ -600,10 +670,32 @@ export default function CheckoutContent({
         downloadUrl,
       };
 
+      const orderId =
+        (orderJson as any)?._id ||
+        (orderJson as any)?.id ||
+        (orderJson as any)?.orderId ||
+        (orderJson as any)?.number ||
+        undefined;
+
+      if (variant === "page") {
+        isRedirectingToSuccessRef.current = true;
+        setIsRedirectingToSuccess(true);
+        try {
+          window.sessionStorage.setItem("checkout:lastPlacedOrder", JSON.stringify(orderSnapshot));
+          if (orderId) window.sessionStorage.setItem("checkout:lastOrderId", String(orderId));
+          if (user.phone) window.sessionStorage.setItem("checkout:lastOrderPhone", String(user.phone));
+        } catch {
+          // ignore
+        }
+        clearCart();
+        router.replace(safeSuccessRedirectPath);
+        return;
+      }
+
+      clearCart();
       setOrderPlaced(true);
       setPlacedOrder(orderSnapshot);
       setSuccess(theme.content.checkoutOrderPlacedSuccess || "Order placed successfully.");
-      clearCart();
     } catch {
       setError(theme.content.checkoutNetworkError || "Network error. Please try again.");
     } finally {
@@ -871,6 +963,30 @@ export default function CheckoutContent({
     );
   }
 
+  if ((isRedirectingToSuccess || isRedirectingToSuccessRef.current) && variant === "page") {
+    return (
+      <motion.div
+        className={`relative overflow-hidden ${containerClass}`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-55 animate-mart-pan"
+          style={checkoutBgStyle}
+          aria-hidden
+        />
+        <div className="absolute inset-0 bg-black/65" aria-hidden />
+        <div className={`relative z-10 ${contentWidthClass}`}>
+          <div className="bg-white/95 border border-[#d5e4dd] shadow-[0_22px_56px_rgba(15,23,42,0.25)] rounded-3xl p-6 sm:p-10 text-center">
+            <div className="mx-auto mb-4 h-10 w-10 rounded-full border-4 border-green-700/30 border-t-green-800 animate-spin" />
+            <div className="text-lg font-extrabold text-gray-900">Finalizing your order...</div>
+            <div className="mt-1 text-sm text-gray-700">Redirecting to your receipt</div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
   if (cart.length === 0 && !orderPlaced) {
     return (
       <div className={`relative overflow-hidden ${containerClass} text-center`}>
@@ -925,22 +1041,6 @@ export default function CheckoutContent({
   if (orderPlaced) {
     return (
       <>
-      <Script
-        id="meta-pixel-base"
-        strategy="afterInteractive"
-        dangerouslySetInnerHTML={{
-          __html: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init', '${META_PIXEL_ID}');fbq('track', 'PageView');`,
-        }}
-      />
-      <noscript>
-        <img
-          height="1"
-          width="1"
-          style={{ display: "none" }}
-          src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
-          alt=""
-        />
-      </noscript>
       <motion.div
         className={`relative overflow-hidden ${containerClass}`}
         initial={{ opacity: 0 }}
@@ -1086,22 +1186,6 @@ export default function CheckoutContent({
 
   return (
     <>
-    <Script
-      id="meta-pixel-base"
-      strategy="afterInteractive"
-      dangerouslySetInnerHTML={{
-        __html: `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init', '${META_PIXEL_ID}');fbq('track', 'PageView');`,
-      }}
-    />
-    <noscript>
-      <img
-        height="1"
-        width="1"
-        style={{ display: "none" }}
-        src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
-        alt=""
-      />
-    </noscript>
     <motion.div
       className={`relative overflow-hidden ${containerClass}`}
       initial={{ opacity: 0 }}

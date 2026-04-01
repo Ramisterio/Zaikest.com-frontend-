@@ -3,8 +3,9 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Script from "next/script";
+import { usePathname } from "next/navigation";
 import { AuthProvider } from "../context/AuthContext";
 import { CartProvider } from "../context/CartContext";
 import { ThemeProvider } from "../context/ThemeContext";
@@ -14,6 +15,8 @@ import ThemeReadyGate from "../components/ThemeReadyGate";
 import "./globals.css";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const lastPathnameRef = useRef<string | null>(null);
 
   useEffect(() => {
     const blockedTypes = new Set([
@@ -59,6 +62,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     document.addEventListener("keydown", handleTabAsSpace);
     return () => document.removeEventListener("keydown", handleTabAsSpace);
   }, []);
+
+  useEffect(() => {
+    if (!pathname) return;
+    if (lastPathnameRef.current === null) {
+      lastPathnameRef.current = pathname;
+      return;
+    }
+    if (lastPathnameRef.current === pathname) return;
+    lastPathnameRef.current = pathname;
+
+    const fbq = (window as any)?.fbq as undefined | ((...args: any[]) => void);
+    if (typeof fbq === "function") fbq("track", "PageView");
+  }, [pathname]);
 
   return (
     <html lang="en">
